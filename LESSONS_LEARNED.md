@@ -1,6 +1,6 @@
 # Lessons Learned — PVSP
 
-> Last updated: 2026-06-07  
+> Last updated: 2026-06-07 (backend sprint added)  
 > These lessons exist because they cost real time to learn. Read them before starting any sprint.
 
 ---
@@ -127,6 +127,55 @@ mgr:      rw         rw        rw        rw      rw       rw          rw        
 - [ ] PO (Mark Visser) — no governance, no risklog
 - [ ] SLM (Lisa van den Berg) — no renewal access
 - [ ] MGR (Sandra Kuijpers) — no aitools, full admin
+
+---
+
+## Backend & Deployment
+
+### Railway ignores PORT 3000 — always use its own PORT variable
+
+**Category**: architecture  
+**Context**: The backend runs on Railway, which assigns its own port dynamically.  
+**What went wrong**: Setting `PORT=3000` in the Railway variables caused crashes because Railway's proxy expected the app on its own port (8080). The app kept showing "CRASHED" until the port was fixed.  
+**Rule**: Never hardcode a port number in Railway. Always write:
+```js
+app.listen(process.env.PORT || 8080, ...)
+```
+Railway injects `process.env.PORT` automatically. The `|| 8080` fallback is for local development only.
+
+---
+
+### Never use nano to paste code — use `cat > file << 'EOF'` instead
+
+**Category**: workflow  
+**Context**: Writing server.js and other code files in Terminal on Mac.  
+**What went wrong**: Pasting multi-line code into nano corrupted special characters (quotes, backticks, arrow functions), causing `SyntaxError: missing ) after argument list` that was hard to diagnose.  
+**Rule**: Always write code files using the heredoc pattern:
+```bash
+cat > filename.js << 'ENDOFFILE'
+// your code here
+ENDOFFILE
+```
+This preserves all characters exactly. Only use nano for small single-line edits.
+
+---
+
+### The Supabase URL must be the base URL only — no path suffix
+
+**Category**: data  
+**Context**: Connecting the Node.js backend to Supabase using `@supabase/supabase-js`.  
+**What went wrong**: The Supabase URL was copied with `/rest/v1/` appended (e.g. `https://xxx.supabase.co/rest/v1/`). The Supabase client adds this path itself — including it twice caused `Invalid path specified in request URL` on every API call.  
+**Rule**: `SUPABASE_URL` must always be just the base URL: `https://xxxx.supabase.co` — nothing after `.co`.  
+**How to check**: Run `cat .env` and verify the URL ends with `.supabase.co` and nothing else.
+
+---
+
+### Backend data model must match frontend expectations before swapping
+
+**Category**: architecture  
+**Context**: Migrating PVSP from localStorage to a real backend database.  
+**What went wrong**: The Supabase vendors table was initially too simple (just name, category, status) while PVSP's VENDORS array has deeply nested fields (contracts, compliance, VHS scores, hHistory). Swapping one for the other directly would break the entire app.  
+**Rule**: When migrating a frontend data structure to a backend, always map API data back to the frontend's expected format before replacing the local array. Use `Object.assign(existing || {}, apiFields)` to merge API data with existing nested data rather than replacing it wholesale. Migrate one entity type at a time, test thoroughly before moving to the next.
 
 ---
 
