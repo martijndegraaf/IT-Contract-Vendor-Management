@@ -12611,7 +12611,7 @@ var _supaToken = null
 function _supaSignIn(email, password){
   return fetch(_SUPA_URL + '/auth/v1/token?grant_type=password', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': _SUPA_KEY },
+    headers: { 'Content-Type': 'application/json', 'apikey': _SUPA_KEY, 'Authorization': 'Bearer ' + _SUPA_KEY },
     body: JSON.stringify({ email: email, password: password })
   }).then(function(r){ return r.json() })
 }
