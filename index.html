@@ -12585,6 +12585,41 @@ function pbCtxOpenCt(e){
 }
 
 /* ──────────────────────────────────────────────── */
+/* ── BACKEND API ────────────────────────────────── */
+var BACKEND_URL = 'https://pvsp-backend-production.up.railway.app'
+
+function fetchBackendVendors(){
+  fetch(BACKEND_URL + '/vendors')
+    .then(function(res){ return res.json() })
+    .then(function(apiVendors){
+      if(!apiVendors || !apiVendors.length) return
+      // Merge API vendors into VENDORS array (skip if id already exists)
+      var existingIds = VENDORS.map(function(v){ return v.id })
+      apiVendors.forEach(function(v){
+        if(existingIds.indexOf(v.id) === -1){
+          VENDORS.push({
+            id: v.id,
+            legal_name: v.name,
+            trade_name: v.name,
+            category: v.category,
+            lifecycle_stage: v.status,
+            risk_level: 'medium',
+            h: {c: v.health_score || 50, p: 50, a: 50, s: 50},
+            hHistory: [v.health_score || 50],
+            contracts: [],
+            contact_name: v.contact_name,
+            contact_email: v.contact_email,
+            country: v.country,
+            _fromBackend: true
+          })
+        }
+      })
+      console.log('Loaded ' + apiVendors.length + ' vendors from backend')
+      if(currentView === 'vendors') renderCurrentView()
+    })
+    .catch(function(err){ console.warn('Backend unavailable, using local data', err) })
+}
+
 /* ── INIT ──────────────────────────────────────── */
 function init(){
   // Restore saved data
@@ -12607,6 +12642,8 @@ function init(){
   initKeyboardShortcuts()
   checkShowTour()
   _initRbacDelegation()
+  // Load any additional vendors from backend
+  fetchBackendVendors()
 }
 init()
 
