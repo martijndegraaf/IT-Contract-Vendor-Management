@@ -12593,29 +12593,35 @@ function fetchBackendVendors(){
     .then(function(res){ return res.json() })
     .then(function(apiVendors){
       if(!apiVendors || !apiVendors.length) return
-      // Merge API vendors into VENDORS array (skip if id already exists)
-      var existingIds = VENDORS.map(function(v){ return v.id })
-      apiVendors.forEach(function(v){
-        if(existingIds.indexOf(v.id) === -1){
-          VENDORS.push({
-            id: v.id,
-            legal_name: v.name,
-            trade_name: v.name,
-            category: v.category,
-            lifecycle_stage: v.status,
-            risk_level: 'medium',
-            h: {c: v.health_score || 50, p: 50, a: 50, s: 50},
-            hHistory: [v.health_score || 50],
-            contracts: [],
-            contact_name: v.contact_name,
-            contact_email: v.contact_email,
-            country: v.country,
-            _fromBackend: true
-          })
-        }
+      // Map API vendors to PVSP format and replace local data
+      var mapped = apiVendors.map(function(v){
+        // Find existing vendor to preserve nested data (contracts, compliance, etc.)
+        var existing = VENDORS.find(function(e){ return e.trade_name === v.name || e.legal_name === v.legal_name })
+        return Object.assign(existing || {}, {
+          id: v.id,
+          trade_name: v.name,
+          legal_name: v.legal_name || v.name,
+          kvk: v.kvk,
+          website: v.website,
+          account_manager: v.account_manager,
+          product_owner: v.product_owner,
+          kraljic_category: v.kraljic_category,
+          lifecycle_stage: v.lifecycle_stage,
+          risk_level: v.risk_level,
+          licensed_users: v.licensed_users,
+          active_users: v.active_users,
+          domain: v.domain,
+          end: v.contract_end,
+          h: existing ? existing.h : {c: v.vhs_score||50, p:50, a:50, s:50},
+          hHistory: existing ? existing.hHistory : [v.vhs_score||50],
+          contracts: existing ? existing.contracts : [],
+          _fromBackend: true
+        })
       })
-      console.log('Loaded ' + apiVendors.length + ' vendors from backend')
-      if(currentView === 'vendors') renderCurrentView()
+      VENDORS = mapped
+      console.log('Loaded ' + VENDORS.length + ' vendors from backend')
+      saveToStorage()
+      if(currentView === 'vendors' || currentView === 'dashboard') renderCurrentView()
     })
     .catch(function(err){ console.warn('Backend unavailable, using local data', err) })
 }
