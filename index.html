@@ -8149,35 +8149,49 @@ function doLogin(){
   var err   = document.getElementById("login-error")
   if(!email || !pw){ if(err){err.textContent="Please enter email and password.";err.style.display="block"} return }
 
-  // Find user by email (demo: any active user + "demo123")
-  var user = USERS.find(function(u){
-    return (u.email||"").toLowerCase() === email && u.status === "active"
-  })
-  if(!user){ if(err){err.textContent="Email address niet gevonden of account inactief.";err.style.display="block"} return }
-  if(pw !== "demo123" && pw !== _adminPassword){
-    if(err){err.textContent="Incorrect password.";err.style.display="block"} return
-  }
+  // Disable button to prevent double-click
+  var btn = document.querySelector('#pvsp-login-overlay button')
+  if(btn){ btn.disabled = true; btn.textContent = 'Signing in...' }
 
-  _session.user       = user
-  _session.persona    = ROLE_PERSONA[user.role] || "cm"
-  _session.loginTime  = Date.now()
-  _session.lastActivity = Date.now()
+  // Authenticate via Supabase Auth REST API
+  _supaSignIn(email, pw)
+    .then(function(result){
+      if(result.error || !result.access_token){
+        if(err){ err.textContent = result.error_description || result.error || 'Incorrect email or password.'; err.style.display='block' }
+        if(btn){ btn.disabled = false; btn.textContent = 'Sign in' }
+        return
+      }
+      _supaToken = result.access_token
+      // Find matching PVSP user by email
+      var user = USERS.find(function(u){ return (u.email||'').toLowerCase() === email && u.status === 'active' })
+      if(!user){
+        if(err){ err.textContent = 'Account not found in PVSP. Contact your administrator.'; err.style.display='block' }
+        if(btn){ btn.disabled = false; btn.textContent = 'Sign in' }
+        return
+      }
 
-  // Save session to sessionStorage
-  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({userId:user.id,persona:_session.persona,loginTime:_session.loginTime})) } catch(e){}
+      _session.user       = user
+      _session.persona    = ROLE_PERSONA[user.role] || 'cm'
+      _session.loginTime  = Date.now()
+      _session.lastActivity = Date.now()
 
-  // Remove login overlay
-  var overlay = document.getElementById("pvsp-login-overlay")
-  if(overlay) overlay.remove()
+      try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({userId:user.id,persona:_session.persona,loginTime:_session.loginTime})) } catch(e){}
 
-  // Switch to correct persona
-  currentPersona = _session.persona
-  applyRBAC()
-  renderDashboard()
-  updateSidebarUser()
-  startSessionTimer()
-  auditLog("LOGIN", "Inlogged als "+user.name, null)
-  toast("Welcome, "+user.name+" 👋")
+      var overlay = document.getElementById('pvsp-login-overlay')
+      if(overlay) overlay.remove()
+
+      currentPersona = _session.persona
+      applyRBAC()
+      renderDashboard()
+      updateSidebarUser()
+      startSessionTimer()
+      auditLog('LOGIN', 'Inlogged als '+user.name, null)
+      toast('Welcome, '+user.name+' 👋')
+    })
+    .catch(function(e){
+      if(err){ err.textContent = 'Login failed. Please try again.'; err.style.display='block' }
+      if(btn){ btn.disabled = false; btn.textContent = 'Sign in' }
+    })
 }
 
 function doLogout(){
@@ -8185,6 +8199,7 @@ function doLogout(){
   _session.user = null; _session.persona = null
   clearTimeout(_session._timer)
   try { sessionStorage.removeItem(SESSION_KEY) } catch(e){}
+  _supaSignOut()
   updateSidebarUser()
   openLoginModal()
 }
@@ -12587,6 +12602,28 @@ function pbCtxOpenCt(e){
 /* ──────────────────────────────────────────────── */
 /* ── BACKEND API ────────────────────────────────── */
 var BACKEND_URL = 'https://pvsp-backend-production.up.railway.app'
+
+// Supabase Auth — direct REST API (no SDK, avoids CSP eval issues)
+var _SUPA_URL  = 'https://pvthylxmrdoxvbniwolt.supabase.co'
+var _SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2dGh5bHhtcmRveHZibml3b2x0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMDA4ODMsImV4cCI6MjA2NDg3Njg4M30.4b2SU256gQyGwQTIx7sw0fKpIUyI1ndcvqe8aaGjw3Q'
+var _supaToken = null
+
+function _supaSignIn(email, password){
+  return fetch(_SUPA_URL + '/auth/v1/token?grant_type=password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': _SUPA_KEY },
+    body: JSON.stringify({ email: email, password: password })
+  }).then(function(r){ return r.json() })
+}
+
+function _supaSignOut(){
+  if(!_supaToken) return
+  fetch(_SUPA_URL + '/auth/v1/logout', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + _supaToken, 'apikey': _SUPA_KEY }
+  })
+  _supaToken = null
+}
 
 function fetchBackendVendors(){
   fetch(BACKEND_URL + '/vendors')
