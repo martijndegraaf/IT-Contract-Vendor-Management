@@ -12618,6 +12618,63 @@ function pbCtxOpenCt(e){
 /* ── BACKEND API ────────────────────────────────── */
 var BACKEND_URL = 'https://pvsp-backend-production.up.railway.app'
 
+// ── Wachtwoord instellen na invite / reset ──────────────────────────────
+function _checkPasswordSetupToken(){
+  var hash = window.location.hash.substring(1)
+  if(!hash) return false
+  var params = {}
+  hash.split('&').forEach(function(p){ var kv=p.split('='); params[kv[0]]=decodeURIComponent(kv[1]||'') })
+  var type = params['type']
+  if(type !== 'invite' && type !== 'recovery') return false
+  var token = params['access_token']
+  if(!token) return false
+  history.replaceState(null, '', window.location.pathname)
+  _openSetPasswordModal(token, type)
+  return true
+}
+
+function _openSetPasswordModal(token, type){
+  var isInvite = type === 'invite'
+  var overlay = document.createElement('div')
+  overlay.id = 'pvsp-setpw-overlay'
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(10,20,40,.7);display:flex;align-items:center;justify-content:center;z-index:9999'
+  overlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:36px 32px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,.18)">'
+    + '<div style="font-size:22px;font-weight:800;color:#154273;margin-bottom:6px">' + (isInvite ? 'Welkom bij PVSP' : 'Nieuw wachtwoord') + '</div>'
+    + '<div style="font-size:12px;color:#6b7280;margin-bottom:24px">' + (isInvite ? 'Stel je wachtwoord in om te beginnen.' : 'Kies een nieuw wachtwoord.') + '</div>'
+    + '<div class="form-group"><label class="form-label">Wachtwoord</label>'
+    + '<input type="password" class="form-input" id="spw-pw1" placeholder="Min. 6 tekens" /></div>'
+    + '<div class="form-group"><label class="form-label">Bevestig wachtwoord</label>'
+    + '<input type="password" class="form-input" id="spw-pw2" placeholder="Herhaal wachtwoord" /></div>'
+    + '<div id="spw-error" style="color:#c0392b;font-size:11px;margin-bottom:8px;display:none"></div>'
+    + '<button onclick="_saveNewPassword(\'' + token + '\')" style="width:100%;padding:11px;border-radius:9px;border:none;background:#154273;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Wachtwoord opslaan</button>'
+    + '</div>'
+  document.body.appendChild(overlay)
+  setTimeout(function(){ var el=document.getElementById('spw-pw1'); if(el) el.focus() }, 80)
+}
+
+function _saveNewPassword(token){
+  var pw1 = (document.getElementById('spw-pw1')||{value:''}).value
+  var pw2 = (document.getElementById('spw-pw2')||{value:''}).value
+  var err = document.getElementById('spw-error')
+  if(pw1.length < 6){ err.textContent='Wachtwoord moet minimaal 6 tekens zijn'; err.style.display='block'; return }
+  if(pw1 !== pw2){ err.textContent='Wachtwoorden komen niet overeen'; err.style.display='block'; return }
+  err.style.display='none'
+  fetch(_SUPA_URL + '/auth/v1/user', {
+    method: 'PUT',
+    headers: { 'Content-Type':'application/json', 'apikey': _SUPA_KEY, 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ password: pw1 })
+  })
+  .then(function(r){ return r.json() })
+  .then(function(data){
+    if(data.error){ var e=document.getElementById('spw-error'); e.textContent=data.error_description||data.error; e.style.display='block'; return }
+    var overlay=document.getElementById('pvsp-setpw-overlay')
+    if(overlay) overlay.remove()
+    toast('✓ Wachtwoord opgeslagen! Je kunt nu inloggen.')
+    openLoginModal()
+  })
+  .catch(function(){ var e=document.getElementById('spw-error'); e.textContent='Er ging iets mis, probeer opnieuw.'; e.style.display='block' })
+}
+
 // Send invite email via backend
 function sendInvite(email, name, role){
   fetch(BACKEND_URL + '/invite-user', {
@@ -12695,6 +12752,9 @@ function fetchBackendVendors(){
 
 /* ── INIT ──────────────────────────────────────── */
 function init(){
+  // Check for Supabase invite/recovery token in URL hash
+  if(_checkPasswordSetupToken()) return
+
   // Restore saved data
   var savedAt = loadFromStorage()
   // Restore or start auth session
