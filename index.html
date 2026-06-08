@@ -10938,6 +10938,42 @@ function broadcastApiUpdate(resource){
 function autoSave(){
   saveToStorage()
   broadcastApiUpdate("kpis")
+  _syncToCloud()
+}
+
+// Debounced cloud sync — max 1 request per 3 seconds
+var _cloudSyncTimer = null
+function _syncToCloud(){
+  clearTimeout(_cloudSyncTimer)
+  _cloudSyncTimer = setTimeout(function(){
+    var payload = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+    if(!payload || !payload.version) return
+    fetch(BACKEND_URL + '/data', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(function(){}) // silent fail — localStorage is the backup
+  }, 3000)
+}
+
+// Load data from cloud on startup, fall back to localStorage
+function _loadFromCloud(callback){
+  fetch(BACKEND_URL + '/data')
+    .then(function(r){ return r.json() })
+    .then(function(res){
+      var cloudData = res.data
+      if(!cloudData || !cloudData.version) { callback(false); return }
+      // Compare timestamps — use whichever is newer
+      var localRaw = localStorage.getItem(STORAGE_KEY)
+      var localData = localRaw ? JSON.parse(localRaw) : null
+      var useCloud = !localData || !localData.savedAt || (cloudData.savedAt && cloudData.savedAt > localData.savedAt)
+      if(useCloud){
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudData))
+        console.log('[PVSP] Loaded data from cloud (newer than local)')
+      }
+      callback(true)
+    })
+    .catch(function(){ callback(false) })
 }
 
 /* ── JSON POLLING ENDPOINT ──────────────────────── */
@@ -12769,11 +12805,16 @@ function init(){
   // Check for Supabase invite/recovery token in URL hash
   if(_checkPasswordSetupToken()) return
 
-  // Restore saved data
-  var savedAt = loadFromStorage()
-  // Restore or start auth session
-  var sessionOk = restoreSession()
-  if(!sessionOk) openLoginModal()
+  // Try to load from cloud first, then fall back to localStorage
+  _loadFromCloud(function(){
+    var savedAt = loadFromStorage()
+    var sessionOk = restoreSession()
+    if(!sessionOk) openLoginModal()
+    _initRest(savedAt)
+  })
+}
+
+function _initRest(savedAt){
   enableHistory()
   initMobileNav()
   initPostMessageApi()
