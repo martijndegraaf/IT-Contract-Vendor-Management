@@ -1963,7 +1963,7 @@ function updateDashboardHeader(){
     document.getElementById("topbar-ac-title").textContent = pa.dashboard
     document.getElementById("topbar-ac-title").style.color = pa.color
     document.getElementById("topbar-ac-sub").innerHTML =
-      `<span style="font-size:11px;font-weight:700;color:var(--g900)">${pa.fullName}</span>` +
+      `<span style="font-size:11px;font-weight:700;color:var(--g900)">${(_session&&_session.user)?_session.user.name:pa.fullName}</span>` +
       `<span style="color:var(--g200)">·</span>` +
       `<span>${pa.role}</span>` +
       `<span style="color:var(--g200)">·</span>` +
@@ -2021,7 +2021,7 @@ function heroHTML(pa,statLeft,statRight){
     </div>
     <div class="lp-hero-ava" style="background:rgba(255,255,255,.2)">${pa.initials}</div>
     <div class="lp-hero-text">
-      <div class="lp-greeting">${greet()}, ${pa.shortName}</div>
+      <div class="lp-greeting">${greet()}, ${(_session&&_session.user)?_session.user.name.split(' ')[0]:pa.shortName}</div>
       <div class="lp-role-line">${pa.role} · ${pa.org} · ${pa.dashboard}</div>
     </div>
     <div class="lp-date-badge">
