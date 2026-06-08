@@ -6398,6 +6398,7 @@ function toggleUserStatus(userId){
   var u=USERS.find(function(x){return x.id===userId})
   if(!u) return
   u.status=u.status==="active"?"inactive":"active"
+  autoSave()
   toast((u.status==="active"?"✓ Activated: ":"✗ Deactivated: ")+u.name)
   renderAdmin()
 }
