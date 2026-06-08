@@ -937,12 +937,33 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
             <button id="vv-grid-btn" onclick="setVendorViewMode('grid')" style="padding:4px 10px;border:none;font-size:11px;cursor:pointer;background:#154273;color:#fff" title="Card grid">▦</button>
             <button id="vv-list-btn" onclick="setVendorViewMode('list')" style="padding:4px 10px;border:none;font-size:11px;cursor:pointer;background:#fff;color:var(--g600)" title="List view">☰</button>
           </div>
-          <div class="filters">
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding:8px 12px;background:var(--g50);border-radius:var(--r-md);border:1px solid var(--g150)">
+        <div class="search-wrap" style="max-width:180px">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9aa3b0" stroke-width="2" style="position:absolute;left:9px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" class="search-input" placeholder="Search vendors…" oninput="onSearch(this.value)" style="padding-left:28px"/>
+        </div>
+        <div style="width:1px;height:18px;background:var(--g200)"></div>
+        <span style="font-size:10px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.05em">Health</span>
+        <div class="filters" id="rag-filters-2">
           <button class="fbtn active" onclick="setRagFilter2('all',this)">All</button>
           <button class="fbtn" onclick="setRagFilter2('green',this)">Healthy</button>
           <button class="fbtn" onclick="setRagFilter2('amber',this)">Warning</button>
           <button class="fbtn" onclick="setRagFilter2('red',this)">Critical</button>
-        </div></div>
+        </div>
+        <div style="width:1px;height:18px;background:var(--g200)"></div>
+        <span style="font-size:10px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.05em">Category</span>
+        <div class="filters" id="kraljic-filters">
+          <button class="fbtn active" onclick="setKraljicFilter('all',this)">All</button>
+          <button class="fbtn" onclick="setKraljicFilter('strategic',this)">Strategic</button>
+          <button class="fbtn" onclick="setKraljicFilter('bottleneck',this)">Bottleneck</button>
+          <button class="fbtn" onclick="setKraljicFilter('leverage',this)">Leverage</button>
+          <button class="fbtn" onclick="setKraljicFilter('routine',this)">Routine</button>
+        </div>
+        <div style="width:1px;height:18px;background:var(--g200)"></div>
+        <button id="vendor-mine-btn" class="fbtn" onclick="toggleVendorMineFilter(this)">Mine</button>
+        <button id="vendor-action-btn" class="fbtn" onclick="toggleVendorActionFilter(this)">Action needed</button>
       </div>
       <div class="vendor-grid" id="vendor-grid2"></div>
     </div>
@@ -1782,6 +1803,9 @@ const VIEW_TITLES = {dashboard:"Dashboard",manager:"Manager Dashboard",vendors:"
 let currentPersona = "cm"
 let ragFilter = "all"
 let ragFilter2 = "all"
+let kraljicFilter = "all"
+let vendorMineFilter = false
+let vendorActionFilter = false
 let riskFilter = "all"
 let taskFilter = "all"
 let searchQuery = ""
@@ -2849,40 +2873,81 @@ function renderVendorGrid(gridId,countId,list){
 
 function vendorCardHTML(v,i){
   const score=calcScore(v.h),r=rag(score),km=KM[v.kraljic_category],lc=LC[v.lifecycle_stage]
-  const days=daysLeft(v.end),pred=predictScore(v.hHistory)
-  const expClass=days<=90?" exp-warn":""
-  const expTxt=days>0?`${days}d`:"Expired"
-  const playbook=score<50?`<button class="playbook-btn" onclick="event.stopPropagation();openPlaybook(${v.id})"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>Critical Score – Start Playbook</button>`:""
   const cmpActive=_compareVendors.includes(v.id)
 
-  // Contract pills — show up to 3 contracts on the card itself
-  const ctPills = v.contracts.slice(0,3).map(ct=>{
+  // Urgency border colour
+  const borderCol=r==="red"?"#E24B4A":r==="amber"?"#EF9F27":""
+  const borderStyle=borderCol?"border-left:3px solid "+borderCol+";border-radius:0 var(--r-md) var(--r-md) 0;":""
+
+  // Score colour
+  const scoreCol=r==="red"?"#A32D2D":r==="amber"?"#854F0B":"#3B6D11"
+
+  // Worst metric for focus stat
+  const metrics=[{l:"Compliance",v:v.h.c},{l:"Performance",v:v.h.p},{l:"Adoption",v:v.h.a},{l:"Sentiment",v:v.h.s}]
+  const worst=metrics.reduce((a,b)=>a.v<b.v?a:b)
+  const worstCol=worst.v<50?"#A32D2D":worst.v<70?"#854F0B":"#3B6D11"
+
+  // Portfolio value
+  const portfolio=v.contracts.reduce((a,c)=>a+c.value,0)
+
+  // Nearest expiry across all contracts
+  const upcomingContracts=v.contracts.filter(c=>c.end).map(c=>({...c,d:daysLeft(c.end)})).sort((a,b)=>a.d-b.d)
+  const nearest=upcomingContracts[0]
+  const nearestDays=nearest?nearest.d:null
+  const expiryTxt=nearestDays===null?"—":nearestDays<=0?"Expired":nearestDays+"d"
+  const expiryCol=nearestDays!==null&&nearestDays<=30?"#A32D2D":nearestDays!==null&&nearestDays<=90?"#854F0B":"var(--g600)"
+
+  // Renewal gate pill
+  const rd=RENEWAL_DATA.find(function(x){return x.vendorId===v.id})
+  const rdStage=rd?(rd.stage||"t9").toUpperCase():null
+  const rdGatePill=rdStage?`<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:#e0f4f0;color:#0a6e5c">${rdStage} gate</span>`:""
+
+  // Action strip: open tasks + blocking gate
+  const openTasks=TASKS.filter(function(t){return t.vendorId===v.id&&t.status==="open"})
+  const overdueTasks=openTasks.filter(function(t){return t.due&&daysLeft(t.due)<0})
+  const hasBlockingGate=rd?renewalGateStatus(rd).blocking.length>0:false
+  let actionStrip=""
+  if(overdueTasks.length>0||hasBlockingGate){
+    const urgentMsg=overdueTasks.length>0
+      ?(overdueTasks.length===1?"1 task overdue":overdueTasks.length+" tasks overdue")
+      :"Gate sign-off required"
+    actionStrip=`<div onclick="event.stopPropagation();showView('tasks')" style="margin-top:8px;background:#FAEEDA;border:0.5px solid #FAC775;border-radius:var(--r-sm);padding:6px 10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:6px;height:6px;border-radius:50%;background:#E24B4A;flex-shrink:0"></div>
+        <span style="font-size:10px;font-weight:600;color:#633806">${urgentMsg}</span>
+      </div>
+      <span style="font-size:9px;color:#854F0B">View →</span>
+    </div>`
+  } else if(openTasks.length>0){
+    actionStrip=`<div style="margin-top:8px;font-size:10px;color:var(--g400)">${openTasks.length} open task${openTasks.length>1?"s":""}</div>`
+  }
+
+  // Critical playbook button
+  const playbook=score<50?`<button class="playbook-btn" onclick="event.stopPropagation();openPlaybook(${v.id})"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>Critical – Start Playbook</button>`:""
+
+  // Contract pills — top 2 most urgent
+  const ctPills=upcomingContracts.slice(0,2).map(ct=>{
     const st=CT_STATUS[ct.status]||{color:"#5c6575",bg:"#f5f5f5",label:ct.status}
-    const cd=daysLeft(ct.end)
-    const urgent = (ct.status==="renewal"||ct.status==="verlopen"||cd<=90) && cd>-999
-    return `<div onclick="event.stopPropagation();openCtDetail(this.getAttribute('data-cid'))" data-cid="${ct.id}"
+    const urgent=(ct.status==="renewal"||ct.status==="verlopen"||ct.d<=90)&&ct.d>-999
+    return `<div onclick="event.stopPropagation();openCtDetail('${ct.id}')"
       style="display:flex;align-items:center;justify-content:space-between;gap:8px;
-             padding:6px 9px;border-radius:var(--r-sm);border:1px solid ${urgent?"#fca5a5":"var(--g150)"};
+             padding:5px 8px;border-radius:var(--r-sm);border:1px solid ${urgent?"#fca5a5":"var(--g150)"};
              background:${urgent?"#fff8f8":"var(--g50)"};cursor:pointer;transition:background .15s">
       <div style="flex:1;min-width:0">
-        <div style="font-size:var(--fs-xs);font-weight:var(--fw-semi);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--g800)">${ct.name}</div>
-        <div style="font-size:10px;color:var(--g400);margin-top:1px;display:flex;gap:8px">
+        <div style="font-size:10px;font-weight:var(--fw-semi);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--g800)">${ct.name}</div>
+        <div style="font-size:9px;color:var(--g400);margin-top:1px;display:flex;gap:6px">
           <span class="mono">${fmtEur(ct.value)}</span>
-          <span style="color:${cd<=90&&cd>0?"var(--red)":cd<=0?"var(--red)":"var(--g400)"};font-weight:${cd<=90?"600":"400"}">${ct.end}</span>
+          <span style="color:${ct.d<=90&&ct.d>0?"var(--red)":ct.d<=0?"var(--red)":"var(--g400)"};font-weight:${ct.d<=90?"600":"400"}">${ct.end}</span>
         </div>
       </div>
-      <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:var(--r-pill);background:${st.bg};color:${st.color};flex-shrink:0">${st.label}</span>
+      <span style="font-size:9px;font-weight:600;padding:2px 6px;border-radius:var(--r-pill);background:${st.bg};color:${st.color};flex-shrink:0">${st.label}</span>
     </div>`
   }).join("")
-  const moreContracts = v.contracts.length > 3
-    ? `<div onclick="event.stopPropagation();openDrawer(${v.id})"
-         style="font-size:var(--fs-xs);color:var(--gov);font-weight:var(--fw-medium);padding:4px 2px;cursor:pointer;text-align:center">
-         + ${v.contracts.length-3} more contract${v.contracts.length-3>1?"s":""} →
-       </div>`
-    : ""
+  const moreContracts=v.contracts.length>2
+    ?`<div onclick="event.stopPropagation();openDrawer(${v.id})" style="font-size:10px;color:var(--gov);font-weight:var(--fw-medium);padding:3px 2px;cursor:pointer;text-align:center">+ ${v.contracts.length-2} more →</div>`
+    :""
 
-  return`<div class="vendor-card" style="border-left-color:${km.color};animation-delay:${i*.05}s;cursor:pointer"
-    onclick="openDrawer(${v.id})">
+  return`<div class="vendor-card" style="${borderStyle}animation-delay:${i*.05}s;cursor:pointer" onclick="openDrawer(${v.id})">
 
     <!-- Header: name + score -->
     <div class="card-head">
@@ -2890,58 +2955,50 @@ function vendorCardHTML(v,i){
         <div class="card-name">${vName(v)}</div>
         <div class="card-am">${v.account_manager} · ${v.domain}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-        ${scoreArcSVG(score)}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--g300)" stroke-width="2"
-          style="flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:22px;font-weight:600;color:${scoreCol};line-height:1">${score}</div>
+        <div style="font-size:9px;color:var(--g400)">VHS</div>
       </div>
     </div>
 
     <!-- Badges -->
     <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
-      ${badgeHTML(km.label,km.color,km.bg)} ${badgeHTML(lc.label,lc.color,lc.bg)}
+      ${badgeHTML(km.label,km.color,km.bg)} ${badgeHTML(lc.label,lc.color,lc.bg)} ${rdGatePill}
     </div>
 
-    <!-- VHS bars -->
-    <div style="display:flex;flex-direction:column;gap:4px">
-      ${metricBarHTML("Compliance",v.h.c,"35%")}${metricBarHTML("Performance",v.h.p,"35%")}
-      ${metricBarHTML("Adoption",v.h.a,"20%")}${metricBarHTML("Sentiment",v.h.s,"10%")}
+    <!-- 3-stat row -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+      <div style="background:var(--g50);border-radius:var(--r-sm);padding:6px 8px;text-align:center">
+        <div style="font-size:14px;font-weight:600;color:${worstCol}">${Math.round(worst.v)}</div>
+        <div style="font-size:9px;color:var(--g400)">${worst.l}</div>
+      </div>
+      <div style="background:var(--g50);border-radius:var(--r-sm);padding:6px 8px;text-align:center">
+        <div style="font-size:13px;font-weight:600;color:var(--g700)">${fmtEur(portfolio)}</div>
+        <div style="font-size:9px;color:var(--g400)">Portfolio</div>
+      </div>
+      <div style="background:var(--g50);border-radius:var(--r-sm);padding:6px 8px;text-align:center">
+        <div style="font-size:14px;font-weight:600;color:${expiryCol}">${expiryTxt}</div>
+        <div style="font-size:9px;color:var(--g400)">Expiry</div>
+      </div>
     </div>
 
-    <!-- Trend sparkline -->
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      ${sparklineSVG(v.hHistory,pred)}
-      <span style="font-size:var(--fs-xs);color:var(--g400);margin-left:6px">trend</span>
-    </div>
+    <!-- Action strip -->
+    ${actionStrip}
 
     <!-- Contract pills -->
-    ${v.contracts.length > 0 ? `
+    ${v.contracts.length>0?`
     <div style="border-top:1px solid var(--g150);padding-top:8px">
-      <div style="font-size:10px;font-weight:var(--fw-semi);color:var(--g400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">
-        Contracts (${v.contracts.length})
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px">
-        ${ctPills}
-        ${moreContracts}
-      </div>
-    </div>` : ""}
+      <div style="font-size:9px;font-weight:var(--fw-semi);color:var(--g400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Contracts (${v.contracts.length})</div>
+      <div style="display:flex;flex-direction:column;gap:4px">${ctPills}${moreContracts}</div>
+    </div>`:""}
 
-    <!-- Footer: summary + compare -->
-    <div class="card-foot" style="margin-top:4px">
-      <span>${fmtEur(v.contracts.reduce((a,c)=>a+c.value,0))} total</span>
-      <span class="mono${expClass}">${expTxt}</span>
-    </div>
-    <div style="display:flex;gap:6px;margin-top:6px">
+    <!-- Footer: compare -->
+    <div style="margin-top:4px">
       <button id="cmp-btn-${v.id}" onclick="event.stopPropagation();toggleVendorCompare(${v.id})"
-        style="flex:1;font-size:var(--fs-xs);font-weight:var(--fw-medium);padding:4px 8px;border-radius:var(--r-sm);
+        style="width:100%;font-size:var(--fs-xs);font-weight:var(--fw-medium);padding:4px 8px;border-radius:var(--r-sm);
                border:1px solid var(--g200);background:${cmpActive?"var(--gov)":""};
                color:${cmpActive?"#fff":"var(--g500)"};cursor:pointer;transition:all .15s">
-        ${cmpActive?"✓ Added":"+ Compare"}
-      </button>
-      <button onclick="event.stopPropagation();openDrawer(${v.id})"
-        style="font-size:var(--fs-xs);font-weight:var(--fw-semi);padding:4px 12px;border-radius:var(--r-sm);
-               border:none;background:var(--gov);color:#fff;cursor:pointer;transition:opacity .15s">
-        Open →
+        ${cmpActive?"✓ Added to compare":"+ Compare"}
       </button>
     </div>
     ${playbook}
@@ -2965,7 +3022,10 @@ function kpiIcon(type,color){
 
 /* ──────────────── FILTERS ──────────────── */
 function setRagFilter(f,btn){ragFilter=f;document.querySelectorAll("#rag-filters .fbtn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderVendorGrid("vendor-grid","vendor-count-lbl",getFiltered())}
-function setRagFilter2(f,btn){ragFilter2=f;document.querySelectorAll(`#view-vendors .fbtn`).forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderVendorsFull()}
+function setRagFilter2(f,btn){ragFilter2=f;document.querySelectorAll("#rag-filters-2 .fbtn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderVendorsFull()}
+function setKraljicFilter(f,btn){kraljicFilter=f;document.querySelectorAll("#kraljic-filters .fbtn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderVendorsFull()}
+function toggleVendorMineFilter(btn){vendorMineFilter=!vendorMineFilter;btn.classList.toggle("active",vendorMineFilter);renderVendorsFull()}
+function toggleVendorActionFilter(btn){vendorActionFilter=!vendorActionFilter;btn.classList.toggle("active",vendorActionFilter);renderVendorsFull()}
 function filterRisks(f,btn){riskFilter=f;document.querySelectorAll("#risk-filters .fbtn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderRiskLog()}
 function filterTasks(f,btn){taskFilter=f;document.querySelectorAll("#task-filters .fbtn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderTasks()}
 function onSearch(q){searchQuery=q;if(currentView==="dashboard")renderVendorGrid("vendor-grid","vendor-count-lbl",getFiltered());else if(currentView==="vendors")renderVendorsFull()}
@@ -10840,9 +10900,26 @@ function renderContractTable(){
 /* ── PATCH renderVendorsFull to support list view ── */
 var _origRenderVendorsFull = renderVendorsFull
 function renderVendorsFull(){
+  var myName=_session&&_session.user?_session.user.name:""
   var list=VENDORS.filter(function(v){
     var s=calcScore(v.h),r=rag(s)
-    return(ragFilter2==="all"||r===ragFilter2)&&vName(v).toLowerCase().includes(searchQuery.toLowerCase())
+    if(ragFilter2!=="all"&&r!==ragFilter2) return false
+    if(!vName(v).toLowerCase().includes(searchQuery.toLowerCase())) return false
+    if(kraljicFilter!=="all"&&v.kraljic_category!==kraljicFilter) return false
+    if(vendorMineFilter&&v.account_manager!==myName) return false
+    if(vendorActionFilter){
+      var hasOpenTask=TASKS.some(function(t){return t.vendorId===v.id&&t.status==="open"})
+      var rd=RENEWAL_DATA.find(function(r){return r.vendorId===v.id})
+      var hasBlockingGate=rd?renewalGateStatus(rd).blocking.length>0:false
+      if(!hasOpenTask&&!hasBlockingGate) return false
+    }
+    return true
+  })
+  // Sort by urgency: red first, then amber, then green
+  var ragOrd={red:0,amber:1,green:2}
+  list.sort(function(a,b){
+    var ra=ragOrd[rag(calcScore(a.h))]||2, rb=ragOrd[rag(calcScore(b.h))]||2
+    return ra-rb
   })
   document.getElementById("vendor-count-lbl2").textContent=list.length+" of "+VENDORS.length
   var vhdr=document.getElementById("vendor-add-btn"); if(vhdr&&!isReadOnly()) vhdr.style.display=""
