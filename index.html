@@ -8165,12 +8165,20 @@ function doLogin(){
         return
       }
       _supaToken = result.access_token
-      // Find matching PVSP user by email
-      var user = USERS.find(function(u){ return (u.email||'').toLowerCase() === email && u.status === 'active' })
+      // Find matching PVSP user by email (active or pending)
+      var user = USERS.find(function(u){ return (u.email||'').toLowerCase() === email })
       if(!user){
-        if(err){ err.textContent = 'Account not found in PVSP. Contact your administrator.'; err.style.display='block' }
-        if(btn){ btn.disabled = false; btn.textContent = 'Sign in' }
-        return
+        // Auto-create from Supabase metadata if not in PVSP
+        var meta = (result.user && result.user.user_metadata) || {}
+        var newId = 'USR-' + Date.now()
+        user = { id: newId, name: meta.name || email.split('@')[0], email: email,
+                 role: meta.role || 'cm', dept: '', status: 'active',
+                 phone: '', created: new Date().toISOString().split('T')[0] }
+        USERS.push(user)
+        autoSave()
+      } else if(user.status !== 'active'){
+        user.status = 'active'
+        autoSave()
       }
 
       _session.user       = user
