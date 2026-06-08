@@ -672,6 +672,30 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
 .al-unread-dot{width:7px;height:7px;border-radius:50%;background:#378ADD;flex-shrink:0;margin-top:5px}
 .al-fyi-collapsed{font-size:12px;color:var(--g500);padding:9px 14px;border:1px solid var(--g150);border-radius:var(--r-sm);cursor:pointer;margin-bottom:4px}
 .al-fyi-collapsed:hover{background:var(--g75)}
+/* vendor portfolio view */
+.vpf-sum-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.vpf-sum-card{background:var(--g75);border-radius:var(--r-sm);padding:11px 14px;text-align:center}
+.vpf-sum-num{font-size:22px;font-weight:700;line-height:1.1;margin-bottom:2px}
+.vpf-sum-lbl{font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--g500)}
+.vpf-grp-hdr{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:var(--r-sm);margin-bottom:4px;cursor:pointer;background:var(--g75);border:1px solid var(--g150);user-select:none}
+.vpf-grp-title{font-size:13px;font-weight:600;color:var(--g700)}
+.vpf-grp-count{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700}
+.vpf-rows-wrap{margin-bottom:12px}
+.vpf-tbl-hdr{display:grid;grid-template-columns:3px 2fr 90px 54px 110px 88px 62px 70px 110px;gap:0;padding:5px 0;border-bottom:1px solid var(--g150);font-size:10px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.05em}
+.vpf-tbl-hdr>span{padding:0 8px}
+.vpf-tbl-hdr>span:last-child{text-align:right}
+.vpf-row{display:grid;grid-template-columns:3px 2fr 90px 54px 110px 88px 62px 70px 110px;gap:0;align-items:center;border-bottom:1px solid var(--g100);cursor:pointer;transition:background .1s}
+.vpf-row:hover{background:var(--g50)}
+.vpf-row>div{padding:9px 8px}
+.vpf-row>div:first-child{padding:0;align-self:stretch}
+.vpf-row>div:last-child{text-align:right;padding-right:12px}
+.vpf-lborder{border-radius:0}
+.vpf-vname{font-size:12px;font-weight:700;color:var(--g800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vpf-vmeta{font-size:10px;color:var(--g400);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vpf-score{font-size:15px;font-weight:700}
+.vpf-btn{font-size:10px;padding:4px 9px;border-radius:5px;border:1px solid;cursor:pointer;font-weight:600;white-space:nowrap}
+.vpf-ok-collapsed{font-size:12px;color:var(--g500);padding:9px 14px;border:1px solid var(--g150);border-radius:var(--r-sm);cursor:pointer;margin-bottom:4px}
+.vpf-ok-collapsed:hover{background:var(--g75)}
 
 /* ═══════════════════ MANAGER ═══════════════════ */
 .mgr-banner{display:flex;align-items:center;gap:14px;border-radius:12px;padding:16px 20px;margin-bottom:18px;color:#fff;background:linear-gradient(135deg,var(--gov) 0%,var(--gov-m) 100%)}
@@ -974,11 +998,13 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
         <div style="display:flex;align-items:center;gap:8px">
           <button id="vendor-add-btn" onclick="openNewVendorForm()" style="background:#154273;border:none;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;display:none">+ New vendor</button>
           <div style="display:flex;background:#fff;border:1px solid var(--g200);border-radius:6px;overflow:hidden">
-            <button id="vv-grid-btn" onclick="setVendorViewMode('grid')" style="padding:4px 10px;border:none;font-size:11px;cursor:pointer;background:#154273;color:#fff" title="Card grid">▦</button>
+            <button id="vv-portfolio-btn" onclick="setVendorViewMode('portfolio')" style="padding:4px 10px;border:none;font-size:11px;cursor:pointer;background:#154273;color:#fff" title="Portfolio view">≡</button>
+            <button id="vv-grid-btn" onclick="setVendorViewMode('grid')" style="padding:4px 10px;border:none;font-size:11px;cursor:pointer;background:#fff;color:var(--g600)" title="Card grid">▦</button>
             <button id="vv-list-btn" onclick="setVendorViewMode('list')" style="padding:4px 10px;border:none;font-size:11px;cursor:pointer;background:#fff;color:var(--g600)" title="List view">☰</button>
           </div>
         </div>
       </div>
+      <div id="vnd-sum-strip"></div>
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding:8px 12px;background:var(--g50);border-radius:var(--r-md);border:1px solid var(--g150)">
         <div class="search-wrap" style="max-width:180px">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9aa3b0" stroke-width="2" style="position:absolute;left:9px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1004,7 +1030,16 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
         <div style="width:1px;height:18px;background:var(--g200)"></div>
         <button id="vendor-mine-btn" class="fbtn" onclick="toggleVendorMineFilter(this)">Mine</button>
         <button id="vendor-action-btn" class="fbtn" onclick="toggleVendorActionFilter(this)">Action needed</button>
+        <div style="width:1px;height:18px;background:var(--g200)"></div>
+        <span style="font-size:10px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.05em">Sort</span>
+        <select id="vnd-sort-sel" onchange="setVendorSort(this.value)" style="font-size:11px;padding:3px 8px;border-radius:var(--r-sm);border:1px solid var(--g200);background:#fff;color:var(--g600)">
+          <option value="score">VHS score ↑</option>
+          <option value="expiry">Expiry ↑</option>
+          <option value="value">Portfolio value ↓</option>
+          <option value="name">Name A–Z</option>
+        </select>
       </div>
+      <div id="vnd-portfolio" style="display:none"></div>
       <div class="vendor-grid" id="vendor-grid2"></div>
     </div>
 
@@ -11369,12 +11404,156 @@ function ctColVisibilityPanel(){
   document.addEventListener("click", function close(){ div.remove(); document.removeEventListener("click",close) }, {once:true})
 }
 
-/* ── 6. VENDOR LIST VIEW ────────────────────────── */
-var vendorViewMode = "grid"   // "grid" | "list"
+/* ── 6. VENDOR PORTFOLIO / LIST VIEW ────────────── */
+var vendorViewMode  = "portfolio"   // "portfolio" | "grid" | "list"
+var vendorSortKey   = "score"       // "score" | "expiry" | "value" | "name"
+var _vndCollapsed   = {critical:false, attention:false, ok:true}
 
-function setVendorViewMode(mode){
-  vendorViewMode = mode
+function setVendorSort(key){
+  vendorSortKey = key
   renderVendorsFull()
+}
+
+function vndToggleGroup(key){
+  _vndCollapsed[key] = !_vndCollapsed[key]
+  renderVendorsFull()
+}
+
+function _vndSortList(list){
+  var copy = list.slice()
+  if(vendorSortKey==="score"){
+    copy.sort(function(a,b){ return calcScore(a.h)-calcScore(b.h) })
+  } else if(vendorSortKey==="expiry"){
+    copy.sort(function(a,b){
+      var da=a.contracts.filter(function(c){return c.end}).map(function(c){return daysLeft(c.end)}).sort(function(x,y){return x-y})[0]
+      var db=b.contracts.filter(function(c){return c.end}).map(function(c){return daysLeft(c.end)}).sort(function(x,y){return x-y})[0]
+      da = da===undefined?99999:da; db = db===undefined?99999:db
+      return da-db
+    })
+  } else if(vendorSortKey==="value"){
+    copy.sort(function(a,b){
+      var va=a.contracts.reduce(function(s,c){return s+c.value},0)
+      var vb=b.contracts.reduce(function(s,c){return s+c.value},0)
+      return vb-va
+    })
+  } else {
+    copy.sort(function(a,b){ return vName(a).localeCompare(vName(b)) })
+  }
+  return copy
+}
+
+function _vndGroup(v){
+  var score = calcScore(v.h)
+  var near  = v.contracts.filter(function(c){return c.end}).map(function(c){return daysLeft(c.end)}).sort(function(x,y){return x-y})[0]
+  near = near===undefined?99999:near
+  if(score<50) return 'critical'
+  if(score<70||near<=90) return 'attention'
+  return 'ok'
+}
+
+function _vndContextAction(v){
+  var score = calcScore(v.h)
+  var near  = v.contracts.filter(function(c){return c.end}).map(function(c){return daysLeft(c.end)}).sort(function(x,y){return x-y})[0]
+  near = near===undefined?99999:near
+  if(score<50) return {label:'Start playbook', style:'background:#fdecea;color:#a32d2d;border-color:#f09595', fn:'openPlaybook('+v.id+')'}
+  if(near<=90)  return {label:'Renewal funnel', style:'background:#fef3e0;color:#854f0b;border-color:#fac775', fn:"showView('renewal')"}
+  return {label:'Open', style:'background:var(--g75);color:var(--g700);border-color:var(--g200)', fn:'openDrawer('+v.id+')'}
+}
+
+function vndPortfolioRowHTML(v){
+  var score  = calcScore(v.h), r = rag(score), km = KM[v.kraljic_category]
+  var scoreCol = r==='red'?'#a32d2d':r==='amber'?'#854f0b':'#3b6d11'
+  var borderCol= r==='red'?'#E24B4A':r==='amber'?'#EF9F27':'#63c77a'
+  var metrics  = [{l:'Compliance',v:v.h.c},{l:'Performance',v:v.h.p},{l:'Adoption',v:v.h.a},{l:'Sentiment',v:v.h.s}]
+  var worst    = metrics.reduce(function(a,b){return a.v<b.v?a:b})
+  var worstCol = worst.v<50?'#a32d2d':worst.v<70?'#854f0b':'var(--g500)'
+  var portfolio= v.contracts.reduce(function(a,c){return a+c.value},0)
+  var nearDays = v.contracts.filter(function(c){return c.end}).map(function(c){return daysLeft(c.end)}).sort(function(x,y){return x-y})[0]
+  nearDays = nearDays===undefined?null:nearDays
+  var expTxt   = nearDays===null?'—':nearDays<=0?'Expired':nearDays+'d'
+  var expCol   = nearDays!==null&&nearDays<=30?'#a32d2d':nearDays!==null&&nearDays<=90?'#854f0b':'var(--g500)'
+  var openTasks= TASKS.filter(function(t){return t.vendorId===v.id&&t.status==='open'})
+  var overdue  = openTasks.filter(function(t){return t.due&&daysLeft(t.due)<0})
+  var taskTxt  = overdue.length?'<span style="color:#a32d2d;font-weight:600">'+overdue.length+' overdue</span>':openTasks.length?openTasks.length+' open':'—'
+  var act      = _vndContextAction(v)
+  return '<div class="vpf-row" onclick="openDrawer('+v.id+')">'
+    +'<div class="vpf-lborder" style="background:'+borderCol+'"></div>'
+    +'<div><div class="vpf-vname">'+vName(v)+'</div><div class="vpf-vmeta">'+v.account_manager+' · '+v.domain+'</div></div>'
+    +'<div><span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:'+km.bg+';color:'+km.color+'">'+km.label+'</span></div>'
+    +'<div><span class="vpf-score" style="color:'+scoreCol+'">'+score+'</span></div>'
+    +'<div style="font-size:11px;color:'+worstCol+'">'+worst.l+' '+Math.round(worst.v)+'</div>'
+    +'<div style="font-size:11px;color:var(--g700);font-family:\'DM Mono\',monospace">'+fmtEur(portfolio)+'</div>'
+    +'<div><span style="font-size:12px;font-weight:600;color:'+expCol+'">'+expTxt+'</span></div>'
+    +'<div style="font-size:11px">'+taskTxt+'</div>'
+    +'<div><button class="vpf-btn" style="'+act.style+'" onclick="event.stopPropagation();'+act.fn+'">'+act.label+' →</button></div>'
+    +'</div>'
+}
+
+var _vndTblHdr = '<div class="vpf-tbl-hdr">'
+  +'<span></span><span>Vendor</span><span>Category</span><span>VHS</span>'
+  +'<span>Worst metric</span><span>Portfolio</span><span>Expiry</span><span>Tasks</span><span style="text-align:right">Action</span>'
+  +'</div>'
+
+function _vndGroupHTML(items, key, label, iconSvg, iconColor, countStyle, collapsed){
+  if(!items.length) return ''
+  var chevron = collapsed?'&#9650;':'&#9660;'
+  var hdr = '<div class="vpf-grp-hdr" onclick="vndToggleGroup(\''+key+'\')">'
+    +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="'+iconColor+'" stroke-width="2">'+iconSvg+'</svg>'
+    +'<span class="vpf-grp-title">'+label+'</span>'
+    +'<span class="vpf-grp-count" style="'+countStyle+'">'+items.length+'</span>'
+    +'<span style="margin-left:auto;font-size:11px;color:var(--g400)">'+chevron+'</span>'
+    +'</div>'
+  if(collapsed) return hdr
+  return hdr+'<div class="vpf-rows-wrap">'+_vndTblHdr+items.map(vndPortfolioRowHTML).join('')+'</div>'
+}
+
+function renderVndSumStrip(all, critical, attention, ok){
+  var el = document.getElementById('vnd-sum-strip')
+  if(!el) return
+  var totalVal = all.reduce(function(s,v){return s+v.contracts.reduce(function(a,c){return a+c.value},0)},0)
+  var expiring = all.filter(function(v){
+    var d=v.contracts.filter(function(c){return c.end}).map(function(c){return daysLeft(c.end)}).sort(function(x,y){return x-y})[0]
+    return d!==undefined&&d>0&&d<=90
+  }).length
+  el.innerHTML = '<div class="vpf-sum-strip">'
+    +'<div class="vpf-sum-card"><div class="vpf-sum-num" style="color:#a32d2d">'+critical.length+'</div><div class="vpf-sum-lbl">Critical (VHS &lt;50)</div></div>'
+    +'<div class="vpf-sum-card"><div class="vpf-sum-num" style="color:#854f0b">'+expiring+'</div><div class="vpf-sum-lbl">Expiring ≤90d</div></div>'
+    +'<div class="vpf-sum-card"><div class="vpf-sum-num" style="color:#3b6d11">'+ok.length+'</div><div class="vpf-sum-lbl">Healthy</div></div>'
+    +'<div class="vpf-sum-card"><div class="vpf-sum-num">'+fmtEur(totalVal)+'</div><div class="vpf-sum-lbl">Total portfolio</div></div>'
+    +'</div>'
+}
+
+function renderVndPortfolio(list){
+  var mount = document.getElementById('vnd-portfolio')
+  if(!mount) return
+  var sorted   = _vndSortList(list)
+  var critical = sorted.filter(function(v){return _vndGroup(v)==='critical'})
+  var attention= sorted.filter(function(v){return _vndGroup(v)==='attention'})
+  var ok       = sorted.filter(function(v){return _vndGroup(v)==='ok'})
+
+  renderVndSumStrip(list, critical, attention, ok)
+
+  var html = ''
+  html += _vndGroupHTML(critical,'critical','Critical',
+    '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    '#c0392b','background:#fdecea;color:#a32d2d',_vndCollapsed.critical)
+  html += _vndGroupHTML(attention,'attention','Needs attention',
+    '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+    '#d97706','background:#fef3e0;color:#854f0b',_vndCollapsed.attention)
+
+  if(ok.length){
+    if(_vndCollapsed.ok){
+      html += '<div class="vpf-ok-collapsed" onclick="vndToggleGroup(\'ok\')">'
+        +'&#9650; <strong>'+ok.length+'</strong> vendors on track — VHS &gt; 70, no expiry within 90 days. Click to expand.</div>'
+    } else {
+      html += _vndGroupHTML(ok,'ok','On track',
+        '<circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/>',
+        '#1a9e5c','background:#d4f5e2;color:#0f6e3f',false)
+    }
+  }
+
+  if(!html) html = '<div class="empty">No vendors match your filters.</div>'
+  mount.innerHTML = html
 }
 
 function vendorListRowHTML(v, i){
@@ -11393,89 +11572,12 @@ function vendorListRowHTML(v, i){
   + '</div>'
 }
 
-/* ── 7. SAVED VIEWS ─────────────────────────────── */
-function saveCtView(){
-  var name = prompt("View name (e.g. 'My renewals Q3'):")
-  if(!name||!name.trim()) return
-  ctSavedViews.push({
-    name: name.trim(),
-    filters: JSON.parse(JSON.stringify(ctColFilters)),
-    vendor: ctFilterVendor, status: ctFilterStatus,
-    type: ctFilterType, domain: ctFilterDomain,
-    groupBy: ctGroupBy, sortKey: ctSortKey, sortDir: ctSortDir
-  })
-  saveCtPrefs()
-  renderCtSavedViews()
-  toast("✓ View saved: "+name.trim())
+function setVendorViewMode(mode){
+  vendorViewMode = mode
+  renderVendorsFull()
 }
 
-function loadCtView(idx){
-  var v = ctSavedViews[idx]; if(!v) return
-  ctColFilters  = JSON.parse(JSON.stringify(v.filters))
-  ctFilterVendor = v.vendor||"all"
-  ctFilterStatus = v.status||"all"
-  ctFilterType   = v.type||"all"
-  ctFilterDomain = v.domain||"all"
-  ctGroupBy      = v.groupBy||"none"
-  ctSortKey      = v.sortKey||"end"
-  ctSortDir      = v.sortDir||"asc"
-  ctPage         = 1
-  // Sync dropdowns
-  ;["ct-filter-vendor","ct-filter-status","ct-filter-type","ct-filter-domain"].forEach(function(id){
-    var el=document.getElementById(id); if(el) el.value=({vendor:ctFilterVendor,status:ctFilterStatus,type:ctFilterType,domain:ctFilterDomain}[id.replace("ct-filter-","")])||"all"
-  })
-  renderCtFilterChips()
-  renderCtHeaders()
-  renderContractTable()
-  toast("View loaded: "+v.name)
-}
-
-function deleteCtView(idx){
-  ctSavedViews.splice(idx,1); saveCtPrefs(); renderCtSavedViews()
-}
-
-function renderCtSavedViews(){
-  var el = document.getElementById("ct-saved-views"); if(!el) return
-  if(!ctSavedViews.length){ el.innerHTML=""; return }
-  el.innerHTML = ctSavedViews.map(function(v,i){
-    return '<button onclick="loadCtView('+i+')" style="display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--g200);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:600;color:var(--g700);cursor:pointer" title="Load view: '+v.name+'">'
-    + '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
-    + v.name
-    + '<span onclick="event.stopPropagation();deleteCtView('+i+')" style="color:var(--g400);font-size:11px;cursor:pointer;margin-left:2px">×</span>'
-    + '</button>'
-  }).join("")
-}
-
-/* ── PATCH renderContractTable to use all new features ── */
-var _origRenderContractTable = renderContractTable
-function renderContractTable(){
-  var filtered = getFilteredContracts()
-  var sorted   = getSortedContracts(filtered)
-  renderCtStats(filtered)
-  renderCtFilterChips()
-  renderCtSavedViews()
-
-  // Paginate (skip in grouped mode — groups show all)
-  var pageSlice = ctGroupBy!=="none" ? sorted
-    : sorted.slice((ctPage-1)*ctPageSize, ctPage*ctPageSize)
-
-  var bodyHTML = ""
-  if(!sorted.length){
-    bodyHTML = '<tr><td colspan="10" style="padding:40px;text-align:center;color:var(--g400)">No contracts found.</td></tr>'
-  } else if(ctGroupBy!=="none"){
-    bodyHTML = renderContractTableGrouped(sorted)
-  } else {
-    bodyHTML = pageSlice.map(function(c,i){ return ctRowHTML(c,i) }).join("")
-  }
-
-  document.getElementById("ct-tbody").innerHTML = bodyHTML
-
-  // Pagination
-  var pgEl = document.getElementById("ct-pagination")
-  if(pgEl) pgEl.innerHTML = ctGroupBy==="none" ? renderCtPagination(sorted.length) : ""
-}
-
-/* ── PATCH renderVendorsFull to support list view ── */
+/* ── PATCH renderVendorsFull to support portfolio / list / grid ── */
 var _origRenderVendorsFull = renderVendorsFull
 function renderVendorsFull(){
   var myName=_session&&_session.user?_session.user.name:""
@@ -11493,29 +11595,38 @@ function renderVendorsFull(){
     }
     return true
   })
-  // Sort by urgency: red first, then amber, then green
-  var ragOrd={red:0,amber:1,green:2}
-  list.sort(function(a,b){
-    var ra=ragOrd[rag(calcScore(a.h))]||2, rb=ragOrd[rag(calcScore(b.h))]||2
-    return ra-rb
-  })
+
   document.getElementById("vendor-count-lbl2").textContent=list.length+" of "+VENDORS.length
   var vhdr=document.getElementById("vendor-add-btn"); if(vhdr&&!isReadOnly()) vhdr.style.display=""
 
-  // Update view mode toggle
-  var gBtn=document.getElementById("vv-grid-btn"), lBtn=document.getElementById("vv-list-btn")
-  if(gBtn&&lBtn){
-    gBtn.style.background = vendorViewMode==="grid"?"#154273":"#fff"
-    gBtn.style.color      = vendorViewMode==="grid"?"#fff":"var(--g600)"
-    lBtn.style.background = vendorViewMode==="list"?"#154273":"#fff"
-    lBtn.style.color      = vendorViewMode==="list"?"#fff":"var(--g600)"
+  // Update view toggle buttons
+  var pBtn=document.getElementById("vv-portfolio-btn"), gBtn=document.getElementById("vv-grid-btn"), lBtn=document.getElementById("vv-list-btn")
+  if(pBtn&&gBtn&&lBtn){
+    var btns=[['portfolio',pBtn],['grid',gBtn],['list',lBtn]]
+    btns.forEach(function(pair){
+      pair[1].style.background = vendorViewMode===pair[0]?"#154273":"#fff"
+      pair[1].style.color      = vendorViewMode===pair[0]?"#fff":"var(--g600)"
+    })
   }
 
-  if(vendorViewMode==="list"){
-    var grid = document.getElementById("vendor-grid2")
-    if(grid){
-      grid.style.display = "block"
-      grid.innerHTML = list.length
+  // Sync sort dropdown
+  var sortSel=document.getElementById("vnd-sort-sel"); if(sortSel) sortSel.value=vendorSortKey
+
+  var portfolio = document.getElementById("vnd-portfolio")
+  var grid2     = document.getElementById("vendor-grid2")
+
+  if(vendorViewMode==="portfolio"){
+    // Show summary strip + portfolio, hide card grid
+    if(portfolio){ portfolio.style.display="block"; renderVndPortfolio(list) }
+    if(grid2) grid2.style.display="none"
+  } else if(vendorViewMode==="list"){
+    // Hide portfolio, show list in grid2
+    if(portfolio) portfolio.style.display="none"
+    // Clear summary strip in list/grid modes
+    var ss=document.getElementById("vnd-sum-strip"); if(ss) ss.innerHTML=""
+    if(grid2){
+      grid2.style.display="block"
+      grid2.innerHTML = list.length
         ? '<div style="border:1px solid var(--g200);border-radius:var(--r);overflow:hidden">'
           + '<div style="display:grid;grid-template-columns:28px 1fr 80px 90px 70px 70px 80px 70px;gap:10px;padding:7px 12px;background:var(--g50);border-bottom:1px solid var(--g200);font-size:9px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.06em">'
           + '<div></div><div>Vendor</div><div style="text-align:center">VHS</div><div>Kraljic</div><div>Lifecycle</div><div style="text-align:right">Contracts</div><div style="text-align:right">Portfolio</div><div></div></div>'
@@ -11524,17 +11635,18 @@ function renderVendorsFull(){
         : '<div class="empty">No vendors found.</div>'
     }
   } else {
-    var grid2 = document.getElementById("vendor-grid2")
-    if(grid2){ grid2.style.display = ""; grid2.style.display = "grid" }
-    document.getElementById("vendor-grid2").innerHTML = list.length
+    // Card grid mode
+    if(portfolio) portfolio.style.display="none"
+    var ss2=document.getElementById("vnd-sum-strip"); if(ss2) ss2.innerHTML=""
+    if(grid2){ grid2.style.display="grid" }
+    if(grid2) grid2.innerHTML = list.length
       ? list.map(function(v,i){ return vendorCardHTML(v,i) }).join("")
       : '<div class="empty">No vendors found.</div>'
   }
 
-  // Inject RBAC banner
+  // RBAC banner
   var el=document.getElementById("view-vendors")
-  var existing=el.querySelector(".rbac-banner")
-  if(existing) existing.remove()
+  var existing=el.querySelector(".rbac-banner"); if(existing) existing.remove()
   if(rbacBanner()) el.insertBefore(Object.assign(document.createElement('div'),{innerHTML:rbacBanner()}).firstChild, el.firstChild)
   var cc=document.getElementById("compare-count"); if(cc) cc.textContent=_compareVendors.length
   var ct2=document.getElementById("compare-trigger"); if(ct2) ct2.style.display=_compareVendors.length>=2?"flex":"none"
