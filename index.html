@@ -3797,20 +3797,16 @@ const STAGES=[
 function renderRenewal(){
   injectRbacBanner("renewal")
 
+  var stageConf = {
+    t12:{label:"T-12",title:"Performance review",   owner:"System / AI",        color:"var(--gov)",   bg:"var(--gov-l)"},
+    t9: {label:"T-9", title:"Needs validation",     owner:"Product Owner",      color:"var(--teal)",  bg:"var(--teal-bg)"},
+    t6: {label:"T-6", title:"Make decision",        owner:"CM + Manager",       color:"var(--amber)", bg:"var(--amber-bg)"},
+    t3: {label:"T-3", title:"Legal deadline",       owner:"All four approvers", color:"var(--red)",   bg:"var(--red-bg)"}
+  }
+  var decLabels = {renew:"✓ Renew", retender:"↺ Retender", terminate:"✕ Terminate"}
   var decColors = {renew:"#1a9e5c", retender:"var(--amber)", terminate:"var(--red)"}
   var decBg     = {renew:"#eaf7f1", retender:"var(--amber-bg)", terminate:"var(--red-bg)"}
-  var decBorder = {renew:"#a8e6c8", retender:"var(--amber-border)", terminate:"var(--red-border)"}
-  var decLabels = {renew:"✓ Renew", retender:"↺ Retender", terminate:"✕ Terminate"}
-  var decNext   = {renew:"Prepare renewal documents", retender:"Launch market consultation", terminate:"Send formal notice to vendor"}
 
-  var stageConf = {
-    t12:{label:"T-12",title:"Performance review",   owner:"System / AI",        color:"var(--gov)",   bg:"var(--gov-l)",   border:"#c5d8f0"},
-    t9: {label:"T-9", title:"Needs validation",     owner:"Product Owner",      color:"var(--teal)",  bg:"var(--teal-bg)", border:"var(--teal-border)"},
-    t6: {label:"T-6", title:"Make decision",        owner:"CM + Manager",       color:"var(--amber)", bg:"var(--amber-bg)",border:"var(--amber-border)"},
-    t3: {label:"T-3", title:"Legal deadline",       owner:"All four approvers", color:"var(--red)",   bg:"var(--red-bg)",  border:"var(--red-border)"}
-  }
-
-  // ── KPI row ───────────────────────────────────────────────
   var totalVal = RENEWAL_DATA.reduce(function(s,r){return s+r.val},0)
   var decided  = RENEWAL_DATA.filter(function(r){return r.decision}).length
   var urgent   = RENEWAL_DATA.filter(function(r){return r.stage==="t3"&&!r.decision}).length
@@ -3823,41 +3819,6 @@ function renderRenewal(){
     + _funnelStat(urgent||expiring,urgent?"Require action now":"Expiring < 90 days",urgent?"var(--red)":"var(--amber)",urgent?"var(--red-bg)":"var(--amber-bg)")
     + '</div>'
 
-  // ── "Actions required for you" block ─────────────────────
-  var cp = currentPersona
-  var myActions = RENEWAL_DATA.filter(function(rd){
-    var gs = renewalGateStatus(rd)
-    return gs.missing.indexOf(cp) !== -1
-  })
-  var myActionsHTML = ""
-  if(myActions.length > 0 && !isReadOnly()){
-    var actCount = myActions.length
-    myActionsHTML = '<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--r-md);padding:12px 14px;margin-bottom:12px">'
-      +'<div style="display:flex;align-items:center;gap:7px;margin-bottom:10px">'
-      +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
-      +'<span style="font-size:var(--fs-sm);font-weight:var(--fw-semi);color:var(--amber)">'+actCount+' action'+(actCount>1?'s':'')+' require your sign-off</span>'
-      +'</div>'
-    myActions.forEach(function(rd){
-      var v = VENDORS.find(function(x){return x.id===rd.vendorId})
-      var sc = stageConf[rd.stage]||stageConf.t12
-      var cd = daysLeft(rd.endDate)
-      var isUrgent = rd.stage==="t3"
-      myActionsHTML += '<div style="background:#fff;border:1px solid '+(isUrgent?"var(--red-border)":"var(--amber-border)")+';border-radius:var(--r-sm);padding:10px 12px;display:flex;align-items:center;gap:12px;margin-bottom:6px">'
-        +'<div style="flex:1;min-width:0">'
-        +'<div style="font-size:var(--fs-sm);font-weight:var(--fw-semi);color:var(--g800)">'+rd.contract+'</div>'
-        +'<div style="font-size:var(--fs-xs);color:'+(isUrgent?"var(--red)":"var(--amber)")+';margin-top:2px">'
-        +sc.label+' · '+(v?vName(v):"–")
-        +(isUrgent&&cd<=0?" · Contract expired — formal notice required":"")
-        +(cd>0&&cd<=90?" · Expires in "+cd+" days":"")
-        +'</div>'
-        +'</div>'
-        +'<button onclick="openRenewalDecisionLog('+rd.vendorId+',\''+(rd.decision||'renew')+'\')" style="flex-shrink:0;font-size:var(--fs-xs);font-weight:var(--fw-semi);padding:6px 12px;border-radius:var(--r-sm);border:none;background:'+(isUrgent?"var(--red)":"var(--gov)")+';color:#fff;cursor:pointer">Sign off</button>'
-        +'</div>'
-    })
-    myActionsHTML += '</div>'
-  }
-
-  // ── Contract table ────────────────────────────────────────
   var sorted = RENEWAL_DATA.slice().sort(function(a,b){
     var pa = (a.stage==="t3"&&!a.decision)?0:(a.stage==="t6"&&!a.decision)?1:2
     var pb = (b.stage==="t3"&&!b.decision)?0:(b.stage==="t6"&&!b.decision)?1:2
@@ -3865,161 +3826,61 @@ function renderRenewal(){
     return daysLeft(a.endDate)-daysLeft(b.endDate)
   })
 
-  var rows = '<div style="background:#fff;border:1px solid var(--g150);border-radius:var(--r-md);overflow:hidden">'
-    +'<div style="display:grid;grid-template-columns:2fr 1.2fr 90px 1.8fr 190px 110px;gap:0;padding:7px 14px;background:var(--g50);border-bottom:1px solid var(--g150)">'
-    +['Contract & vendor','End date','Value','Sign-offs','Decision','Actions'].map(function(h){
-        return '<div style="font-size:10px;font-weight:var(--fw-semi);color:var(--g400);text-transform:uppercase;letter-spacing:.06em">'+h+'</div>'
-      }).join('')
-    +'</div>'
+  if(!window._renewalSel||!RENEWAL_DATA.some(function(r){return r.vendorId===window._renewalSel}))
+    window._renewalSel = sorted[0]?sorted[0].vendorId:null
 
+  var cp = currentPersona
+
+  var leftCards = '<div style="display:flex;flex-direction:column;gap:6px">'
   sorted.forEach(function(rd){
     var v   = VENDORS.find(function(x){return x.id===rd.vendorId})
     var cd  = daysLeft(rd.endDate)
-    var dec = rd.decision
     var sc  = stageConf[rd.stage]||stageConf.t12
     var gs  = renewalGateStatus(rd)
-    var urg = rd.stage==="t3"&&!dec
-    var warn= rd.stage==="t6"&&!dec
-    var rowBg   = urg?"#fff9f9":warn?"#fffdf5":"#fff"
-    var leftBdr = urg?"var(--red)":warn?"var(--amber)":dec?"var(--g200)":"var(--teal)"
-
-    // Sign-off pills
-    var cfg = RENEWAL_GATE_CONFIG[rd.stage]
-    var signoffs = rd.signoffs||[]
-    var pillsHTML = ""
-    if(cfg){
-      pillsHTML = '<div style="display:flex;gap:4px;flex-wrap:wrap">'
-      cfg.required.forEach(function(p){
-        var pd2 = PERSONA_DISPLAY[p]||{label:p,short:p.toUpperCase(),color:"#888",bg:"#f0f0f0"}
-        var so = signoffs.find(function(s){return s.persona===p})
-        var voted = so?(so.vote||"approve"):null
-        var icon  = voted==="object"?"✕":voted?"✓":"—"
-        var bdr   = voted==="object"?"var(--red-border)":voted?"#a8e6c8":"var(--g200)"
-        var bg2   = voted==="object"?"var(--red-bg)":voted?"#eaf7f1":"#fff"
-        var txt   = voted==="object"?"var(--red)":voted?"#1a9e5c":"var(--g400)"
-        var isMine= p===cp&&!voted&&!isReadOnly()
-        if(isMine){bdr="var(--amber-border)";bg2="var(--amber-bg)";txt="var(--amber)"}
-        pillsHTML+='<div title="'+(so?so.name:pd2.label)+': '+(voted||"pending")+'" style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:var(--r-pill);border:1.5px solid '+bdr+';background:'+bg2+';color:'+txt+'">'+pd2.short+' '+icon+'</div>'
-      })
-      var signedCount=cfg.required.filter(function(p){return signoffs.some(function(s){return s.persona===p})}).length
-      pillsHTML+='</div><div style="font-size:10px;color:var(--g400);margin-top:3px">'+signedCount+' of '+cfg.required.length+' approved</div>'
-    } else {
-      pillsHTML='<div style="font-size:var(--fs-xs);color:var(--g300)">No gate at this stage</div>'
-    }
-
-    // Next step hint
-    var nextStep=""
-    if(!dec&&rd.stage==="t3")      nextStep="Send formal notice today"
-    else if(!dec&&rd.stage==="t6") nextStep="Confirm decision before T-3"
-    else if(!dec&&rd.stage==="t9") nextStep="Submit needs assessment"
-    else if(dec)                   nextStep=decNext[dec]||""
-
-    var existingTask=TASKS.find(function(tk){
-      return tk.source==="renewal_funnel"&&tk.vendorId===rd.vendorId&&tk.status!=="done"
-    })
-
-    rows+='<div style="display:grid;grid-template-columns:2fr 1.2fr 90px 1.8fr 190px 110px;gap:0;padding:10px 14px;border-bottom:1px solid var(--g100);background:'+rowBg+';border-left:3px solid '+leftBdr+';align-items:start">'
-
-    // Contract & vendor
-    +'<div style="min-width:0;padding-left:2px">'
-      +'<div style="font-size:var(--fs-sm);font-weight:var(--fw-semi);color:var(--g800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+rd.contract+'</div>'
-      +'<div style="display:flex;align-items:center;gap:5px;margin-top:3px;flex-wrap:wrap">'
+    var isSel  = rd.vendorId === window._renewalSel
+    var leftBdr= (rd.stage==="t3"&&!rd.decision)?"var(--red)":(rd.stage==="t6"&&!rd.decision)?"var(--amber)":rd.decision?"var(--g200)":"var(--teal)"
+    var myTurn = !isReadOnly()&&gs.missing.indexOf(cp)!==-1
+    leftCards += '<div onclick="selectRenewal('+rd.vendorId+')" style="background:'+(isSel?"var(--gov-l)":"#fff")+';border:1px solid '+(isSel?"var(--gov)":"var(--g150)")+';border-left:3px solid '+leftBdr+';border-radius:var(--r-md);padding:10px 12px;cursor:pointer">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">'
       +'<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:var(--r-pill);background:'+sc.bg+';color:'+sc.color+'">'+sc.label+'</span>'
-      +(v?'<span style="font-size:var(--fs-xs);color:var(--gov);cursor:pointer" onclick="openDrawer('+rd.vendorId+')">'+vName(v)+'</span>':'')
-      +(v?'<span style="font-size:10px;color:var(--g400)">VHS '+calcScore(v.h)+'</span>':'')
+      +(myTurn?'<span style="font-size:10px;font-weight:700;color:var(--amber)">Your turn ›</span>'
+        :rd.decision?'<span style="font-size:10px;padding:1px 7px;border-radius:var(--r-pill);background:'+(decBg[rd.decision]||"var(--g100)")+';color:'+(decColors[rd.decision]||"var(--g500)")+'">'+decLabels[rd.decision]+'</span>'
+        :'')
       +'</div>'
-    +'</div>'
-
-    // End date
-    +'<div>'
-      +'<div style="font-size:var(--fs-sm);font-weight:'+(cd<=90?"600":"400")+';color:'+(cd<=0?"var(--red)":cd<=30?"var(--red)":cd<=90?"var(--amber)":"var(--g700)")+'">'+rd.endDate+'</div>'
-      +'<div style="font-size:10px;color:'+(cd<=0?"var(--red)":cd<=90?"var(--amber)":"var(--g400)")+';margin-top:2px">'+(cd<=0?"Expired":cd+"d left")+'</div>'
-    +'</div>'
-
-    // Value
-    +'<div style="font-size:var(--fs-sm);font-weight:500;color:var(--gov);font-family:\'DM Mono\',monospace">'+fmtEur(rd.val)+'</div>'
-
-    // Sign-offs
-    +'<div>'+pillsHTML+'</div>'
-
-    // Decision
-    +'<div>'
-      +(!isReadOnly()
-        ?'<select onchange="updateRenewalDecision('+rd.vendorId+',this.value,this)" style="width:100%;font-size:var(--fs-xs);font-weight:var(--fw-semi);padding:5px 8px;border-radius:var(--r-sm);border:1.5px solid '+(dec?"#a8e6c8":"var(--g200)")+';background:'+(dec?decBg[dec]||"#fff":"#fff")+';color:'+(dec?decColors[dec]||"var(--g500)":"var(--g400)")+';cursor:pointer;outline:none">'
-          +'<option value="">— Choose —</option>'
-          +Object.keys(decLabels).map(function(d){return'<option value="'+d+'"'+(dec===d?' selected':'')+'>'+decLabels[d]+'</option>'}).join('')
-          +'</select>'
-        :(dec
-          ?'<span style="font-size:var(--fs-xs);font-weight:var(--fw-semi);padding:3px 9px;border-radius:var(--r-pill);background:'+(decBg[dec]||"var(--g100)")+';color:'+(decColors[dec]||"var(--g500)")+'">'+decLabels[dec]+'</span>'+(rd.contested?' <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:12px;background:var(--red-bg);color:var(--red)">✕ Contested</span>':"")
-          :'<span style="font-size:var(--fs-xs);color:var(--g300)">—</span>'))
-      +(!isReadOnly()&&!rd.locked&&gs.missing.indexOf(cp)!==-1
-          ?'<button data-vid="'+rd.vendorId+'" data-dec="'+(rd.decision||'renew')+'" onclick="openRenewalDecisionLog(+this.dataset.vid,this.dataset.dec)" style="margin-top:6px;width:100%;padding:5px 8px;border-radius:var(--r-sm);border:none;background:var(--gov);color:#fff;font-size:10px;font-weight:var(--fw-semi);cursor:pointer">Sign off</button>'
-          :(!isReadOnly()&&!rd.locked&&gs.missing.length
-              ?'<button data-vid="'+rd.vendorId+'" data-dec="'+(rd.decision||'renew')+'" onclick="openRenewalDecisionLog(+this.dataset.vid,this.dataset.dec)" style="margin-top:6px;width:100%;padding:5px 8px;border-radius:var(--r-sm);border:1px solid var(--g200);background:#fff;color:var(--g500);font-size:10px;font-weight:var(--fw-semi);cursor:pointer">'+gs.missing.length+' pending</button>'
-              :""))
-      +(nextStep?'<div style="font-size:10px;color:'+(urg?"var(--red)":warn?"var(--amber)":"var(--g400)")+';margin-top:4px">'+nextStep+'</div>':"")
-    +'</div>'
-
-    // Actions
-    +'<div style="display:flex;flex-direction:column;gap:5px">'
-      +(!isReadOnly()
-          ?(existingTask
-              ?'<button onclick="openTaskCtx('+existingTask.id+')" style="font-size:10px;font-weight:var(--fw-semi);padding:4px 9px;border-radius:var(--r-sm);border:1.5px solid var(--gov);background:var(--gov-l);color:var(--gov);cursor:pointer">View task →</button>'
-              :'<button onclick="renewalToTask('+rd.vendorId+')" style="font-size:10px;padding:4px 9px;border-radius:var(--r-sm);border:1px solid var(--g200);background:#fff;color:var(--g600);cursor:pointer">+ Task</button>')
-          :"")
-      +'<button onclick="openDrawer('+rd.vendorId+')" style="font-size:10px;padding:4px 9px;border-radius:var(--r-sm);border:1px solid var(--gov-l);background:var(--gov-l);color:var(--gov);cursor:pointer">Vendor ↗</button>'
-    +'</div>'
-    +'</div>'
+      +'<div style="font-size:var(--fs-sm);font-weight:var(--fw-semi);color:var(--g800);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+rd.contract+'</div>'
+      +'<div style="font-size:var(--fs-xs);color:var(--g500);margin-bottom:7px">'+(v?vName(v):"–")+' · '+(cd<=0?"Expired":cd+"d left")+'</div>'
+      +(function(){
+          var cfg=RENEWAL_GATE_CONFIG[rd.stage]; if(!cfg) return ''
+          var signoffs=rd.signoffs||[]
+          return '<div style="display:flex;gap:3px;flex-wrap:wrap">'
+            +cfg.required.map(function(p){
+                var pd2=PERSONA_DISPLAY[p]||{short:p.toUpperCase()}
+                var so=signoffs.find(function(s){return s.persona===p})
+                var icon=so?(so.vote==="object"?"✕":"✓"):"—"
+                var bdr=so?(so.vote==="object"?"var(--red-border)":"#a8e6c8"):(p===cp&&!isReadOnly()?"var(--amber-border)":"var(--g200)")
+                var bg2=so?(so.vote==="object"?"var(--red-bg)":"#eaf7f1"):(p===cp&&!isReadOnly()?"var(--amber-bg)":"#fff")
+                var txt=so?(so.vote==="object"?"var(--red)":"#1a9e5c"):(p===cp&&!isReadOnly()?"var(--amber)":"var(--g400)")
+                return '<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:var(--r-pill);border:1px solid '+bdr+';background:'+bg2+';color:'+txt+'">'+pd2.short+' '+icon+'</span>'
+              }).join('')
+            +'</div>'
+        })()
+      +'</div>'
   })
-  rows+='</div>'
+  leftCards += '</div>'
 
-  // ── Legend strip ──────────────────────────────────────────
-  var legend='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">'
-    +'<div style="background:#fff;border:1px solid var(--g150);border-radius:var(--r-sm);padding:10px 12px">'
-    +'<div style="font-size:10px;font-weight:var(--fw-semi);color:var(--g400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Stage guide</div>'
-    +'<div style="display:flex;flex-direction:column;gap:4px">'
-    +[["T-12","Performance review — System / AI","var(--gov)","var(--gov-l)"],
-      ["T-9", "Needs validation — Product Owner",  "var(--teal)","var(--teal-bg)"],
-      ["T-6", "Make decision — CM + Manager",      "var(--amber)","var(--amber-bg)"],
-      ["T-3", "Legal deadline — all 4 approvers",  "var(--red)","var(--red-bg)"]].map(function(s){
-        return '<div style="display:flex;align-items:center;gap:6px">'
-          +'<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:var(--r-pill);background:'+s[3]+';color:'+s[2]+';white-space:nowrap">'+s[0]+'</span>'
-          +'<span style="font-size:10px;color:var(--g500)">'+s[1]+'</span>'
-          +'</div>'
-      }).join('')
-    +'</div></div>'
-    +'<div style="background:#fff;border:1px solid var(--g150);border-radius:var(--r-sm);padding:10px 12px">'
-    +'<div style="font-size:10px;font-weight:var(--fw-semi);color:var(--g400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Sign-off status</div>'
-    +'<div style="display:flex;flex-direction:column;gap:4px">'
-    +[["CM ✓","Approved","#a8e6c8","#eaf7f1","#1a9e5c"],
-      ["CM —","Pending","var(--g200)","#fff","var(--g400)"],
-      ["CM ✕","Objected","var(--red-border)","var(--red-bg)","var(--red)"]].map(function(s){
-        return '<div style="display:flex;align-items:center;gap:6px">'
-          +'<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:var(--r-pill);border:1.5px solid '+s[2]+';background:'+s[3]+';color:'+s[4]+'">'+s[0]+'</span>'
-          +'<span style="font-size:10px;color:var(--g500)">'+s[1]+'</span>'
-          +'</div>'
-      }).join('')
-    +'</div></div>'
-    +'<div style="background:#fff;border:1px solid var(--g150);border-radius:var(--r-sm);padding:10px 12px">'
-    +'<div style="font-size:10px;font-weight:var(--fw-semi);color:var(--g400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Decision</div>'
-    +'<div style="display:flex;flex-direction:column;gap:4px">'
-    +[["✓ Renew","#a8e6c8","#eaf7f1","#1a9e5c"],
-      ["↺ Retender","var(--amber-border)","var(--amber-bg)","var(--amber)"],
-      ["✕ Terminate","var(--red-border)","var(--red-bg)","var(--red)"]].map(function(s){
-        return '<div style="display:flex;align-items:center;gap:6px">'
-          +'<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:var(--r-pill);border:1px solid '+s[1]+';background:'+s[2]+';color:'+s[3]+'">'+s[0]+'</span>'
-          +'</div>'
-      }).join('')
-    +'</div></div>'
+  var selRd = RENEWAL_DATA.find(function(r){return r.vendorId===window._renewalSel})
+  var detailHTML = selRd ? _renewalDetailHTML(selRd) : '<div style="padding:40px;text-align:center;color:var(--g400)">Select a contract to view details</div>'
+
+  document.getElementById("funnel-grid").innerHTML = kpi
+    +'<div style="display:grid;grid-template-columns:260px 1fr;gap:12px;align-items:start">'
+    +'<div>'+leftCards+'</div>'
+    +'<div id="renewal-detail-col">'+detailHTML+'</div>'
     +'</div>'
 
-  document.getElementById("funnel-grid").innerHTML = kpi + myActionsHTML + rows + legend
-
-  var tb = document.getElementById("renewal-tbody")
-  if(tb) tb.innerHTML = RENEWAL_DATA.map(function(rd){
+  var tb=document.getElementById("renewal-tbody")
+  if(tb) tb.innerHTML=RENEWAL_DATA.map(function(rd){
     var v=VENDORS.find(function(x){return x.id===rd.vendorId})
     var s=STAGES.find(function(s){return s.key===rd.stage})
-    var cd=daysLeft(rd.endDate)
     return '<tr><td>'+(v?vName(v):"–")+'</td><td>'+rd.contract+'</td>'
       +'<td>'+rd.endDate+'</td><td class="mono">'+fmtEur(rd.val)+'</td>'
       +'<td>'+(s?badgeHTML(s.label,s.color,s.color+"22"):"–")+'</td>'
@@ -4027,12 +3888,174 @@ function renderRenewal(){
       +'<td><button onclick="renewalToTask('+rd.vendorId+')" class="action-chip">Task</button></td></tr>'
   }).join("")
 }
+
 function _funnelStat(val, label, color, bg){
   return '<div style="background:'+bg+';border-radius:var(--r-sm);padding:12px 14px;border:1px solid '+color+'22">'
     +'<div style="font-size:18px;font-weight:600;color:'+color+';line-height:1;margin-bottom:3px">'+val+'</div>'
     +'<div style="font-size:var(--fs-xs);color:'+color+';font-weight:var(--fw-medium)">'+label+'</div>'
     +'</div>'
 }
+
+function selectRenewal(vendorId){
+  window._renewalSel = vendorId
+  renderRenewal()
+}
+
+function _renewalDetailHTML(rd){
+  var v   = VENDORS.find(function(x){return x.id===rd.vendorId})
+  var cd  = daysLeft(rd.endDate)
+  var cp  = currentPersona
+  var gs  = renewalGateStatus(rd)
+  var myTurn = !isReadOnly()&&gs.missing.indexOf(cp)!==-1
+  var stgConf = {
+    t12:{label:"T-12",title:"Performance review",   color:"var(--gov)",   bg:"var(--gov-l)"},
+    t9: {label:"T-9", title:"Needs validation",     color:"var(--teal)",  bg:"var(--teal-bg)"},
+    t6: {label:"T-6", title:"Make decision",        color:"var(--amber)", bg:"var(--amber-bg)"},
+    t3: {label:"T-3", title:"Legal deadline",       color:"var(--red)",   bg:"var(--red-bg)"}
+  }
+  var stageOrder = ['t12','t9','t6','t3']
+  var curIdx = stageOrder.indexOf(rd.stage)
+  var sc  = stgConf[rd.stage]||stgConf.t12
+  var decLabels = {renew:"✓ Renew", retender:"↺ Retender", terminate:"✕ Terminate"}
+  var decColors = {renew:"#1a9e5c", retender:"var(--amber)", terminate:"var(--red)"}
+  var decBg     = {renew:"#eaf7f1", retender:"var(--amber-bg)", terminate:"var(--red-bg)"}
+
+  // Header
+  var hdr = '<div style="padding:14px 16px;border-bottom:1px solid var(--g100);display:flex;align-items:flex-start;justify-content:space-between;gap:12px">'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">'
+    +'<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--r-pill);background:'+sc.bg+';color:'+sc.color+'">'+sc.label+' · '+sc.title+'</span>'
+    +(cd<=0?'<span style="font-size:11px;font-weight:700;color:var(--red)">Contract expired</span>'
+      :cd<=30?'<span style="font-size:11px;color:var(--red)">'+cd+' days left</span>'
+      :cd<=90?'<span style="font-size:11px;color:var(--amber)">'+cd+' days left</span>'
+      :'<span style="font-size:11px;color:var(--g400)">'+cd+' days left</span>')
+    +'</div>'
+    +'<div style="font-size:16px;font-weight:700;color:var(--g900);margin-bottom:3px">'+rd.contract+'</div>'
+    +'<div style="font-size:var(--fs-xs);color:var(--g500)">'+(v?vName(v):"–")+' · '+rd.endDate+' · '+fmtEur(rd.val)+(v?' · VHS '+calcScore(v.h):'')+'</div>'
+    +'</div>'
+    +(v?'<button onclick="openDrawer('+rd.vendorId+')" style="flex-shrink:0;font-size:var(--fs-xs);padding:6px 11px;border-radius:var(--r-sm);border:1px solid var(--g200);background:#fff;color:var(--gov);cursor:pointer;white-space:nowrap">Vendor ↗</button>':'')
+    +'</div>'
+
+  // Your action block
+  var actionBlock = ""
+  if(myTurn){
+    var isUrgent = rd.stage==="t3"
+    actionBlock = '<div style="margin:12px 16px;background:'+(isUrgent?"var(--red-bg)":"var(--amber-bg)")+';border:1px solid '+(isUrgent?"var(--red-border)":"var(--amber-border)")+';border-radius:var(--r-md);padding:12px 14px">'
+      +'<div style="font-size:var(--fs-xs);font-weight:var(--fw-semi);color:'+(isUrgent?"var(--red)":"var(--amber)")+';margin-bottom:6px">Your action is required</div>'
+      +'<div style="font-size:var(--fs-xs);color:var(--g700);margin-bottom:10px">'
+      +(rd.stage==="t3"?"All four approvers must sign before formal notice is sent. Confirm you have reviewed the decision and sign off below."
+        :rd.stage==="t6"?"A decision needs to be confirmed. Select Renew, Retender, or Terminate and sign off to proceed to the final gate."
+        :"Please validate the contract performance data and sign off to advance to the decision stage.")
+      +'</div>'
+      +'<button onclick="openRenewalDecisionLog('+rd.vendorId+',\''+(rd.decision||'renew')+'\')" style="padding:7px 14px;border-radius:var(--r-sm);border:none;background:'+(isUrgent?"var(--red)":"var(--gov)")+';color:#fff;font-size:var(--fs-xs);font-weight:var(--fw-semi);cursor:pointer">Sign off</button>'
+      +'</div>'
+  }
+
+  // Process history timeline
+  var timeline = '<div style="padding:12px 16px">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Process history</div>'
+    +'<div style="display:flex;flex-direction:column">'
+  var gateStages = ['t9','t6','t3']
+  gateStages.forEach(function(stg,i){
+    var stgC    = stgConf[stg]||stgConf.t9
+    var cfg     = RENEWAL_GATE_CONFIG[stg]
+    var stgIdx  = stageOrder.indexOf(stg)
+    var isPast  = curIdx > stgIdx
+    var isCur   = rd.stage===stg
+    var isFut   = curIdx < stgIdx
+    var signedAtStage = isPast&&cfg ? (rd.signoffs||[]).filter(function(s){return cfg.required.indexOf(s.persona)!==-1}) : []
+    var statusText = isPast?"Gate cleared":isCur?(gs.missing.length===0?"All signed — gate unlocked":gs.missing.length+" still pending"):"Upcoming"
+    var statusCol  = isPast?"#1a9e5c":isCur?"var(--amber)":"var(--g300)"
+    timeline += '<div style="display:flex;gap:10px">'
+      +'<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">'
+      +'<div style="width:10px;height:10px;border-radius:50%;background:'+(isPast?"#1a9e5c":isCur?"var(--amber)":"#fff")+';border:2px solid '+(isPast?"#1a9e5c":isCur?"var(--amber)":"var(--g300)")+';margin-top:4px;flex-shrink:0"></div>'
+      +(i<2?'<div style="width:2px;flex:1;min-height:18px;background:'+(isPast?"#c8f0d8":"var(--g150)")+';margin-top:2px"></div>':'')
+      +'</div>'
+      +'<div style="padding-bottom:14px;flex:1;min-width:0">'
+      +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">'
+      +'<span style="font-size:11px;font-weight:700;color:'+(isFut?"var(--g300)":"var(--g700)")+'">'+stgC.label+' — '+stgC.title+'</span>'
+      +'<span style="font-size:10px;color:'+statusCol+'">'+statusText+'</span>'
+      +'</div>'
+      +(cfg?'<div style="font-size:var(--fs-xs);color:var(--g400)">Approvers: '+cfg.required.map(function(p){var pd2=PERSONA_DISPLAY[p]||{short:p.toUpperCase()};return pd2.short}).join(', ')+'</div>':'')
+      +(signedAtStage.length?'<div style="margin-top:5px;display:flex;flex-direction:column;gap:3px">'
+          +signedAtStage.map(function(s){
+              var col2=avatarColor(s.name)
+              return '<div style="display:flex;align-items:center;gap:6px">'
+                +'<div style="width:16px;height:16px;border-radius:50%;background:'+col2+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:7px;font-weight:700;flex-shrink:0">'+initials(s.name)+'</div>'
+                +'<span style="font-size:var(--fs-xs);color:var(--g600)">'+s.name+'</span>'
+                +'<span style="font-size:10px;font-weight:700;color:'+(s.vote==="object"?"var(--red)":s.vote==="conditional"?"var(--amber)":"#1a9e5c")+'">'+(s.vote==="object"?"✕ Objected":s.vote==="conditional"?"⚠ Conditional":"✓ Approved")+'</span>'
+                +(s.voteNote?'<span style="font-size:10px;color:var(--g400)">— '+s.voteNote.substring(0,50)+'</span>':"")
+                +'</div>'
+            }).join('')
+          +'</div>':"")
+      +'</div>'
+      +'</div>'
+  })
+  timeline += '</div></div>'
+
+  // Sign-off progress for current stage
+  var cfg2 = RENEWAL_GATE_CONFIG[rd.stage]
+  var signoffSection = ""
+  if(cfg2){
+    signoffSection = '<div style="padding:12px 16px;border-top:1px solid var(--g100)">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Sign-off progress — '+sc.label+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">'
+      +cfg2.required.map(function(p){
+          var pd3=PERSONA_DISPLAY[p]||{label:p,short:p.toUpperCase(),color:"#888",bg:"#f0f0f0"}
+          var so=(rd.signoffs||[]).find(function(s){return s.persona===p})
+          var isMine=p===cp&&!isReadOnly()
+          var bdr=so?(so.vote==="object"?"var(--red-border)":"#a8e6c8"):isMine?"var(--amber-border)":"var(--g150)"
+          var bgCard=so?(so.vote==="object"?"var(--red-bg)":"#eaf7f1"):isMine?"var(--amber-bg)":"var(--g50)"
+          var statusLbl=so?(so.vote==="object"?"✕ Objected":so.vote==="conditional"?"⚠ Conditional":"✓ Approved"):isMine?"Your turn":"Waiting"
+          var statusCol2=so?(so.vote==="object"?"var(--red)":so.vote==="conditional"?"var(--amber)":"#1a9e5c"):isMine?"var(--amber)":"var(--g400)"
+          var col3=avatarColor(pd3.label)
+          return '<div style="background:'+bgCard+';border:1px solid '+bdr+';border-radius:var(--r-sm);padding:9px 10px">'
+            +'<div style="display:flex;align-items:center;gap:7px;margin-bottom:'+(so&&so.voteNote?"5px":"0")+'">'
+            +'<div style="width:24px;height:24px;border-radius:50%;background:'+col3+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:700;flex-shrink:0">'+pd3.short+'</div>'
+            +'<div style="flex:1;min-width:0">'
+            +'<div style="font-size:var(--fs-xs);font-weight:var(--fw-semi);color:var(--g700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(so?so.name:pd3.label)+'</div>'
+            +'<div style="font-size:10px;font-weight:700;color:'+statusCol2+'">'+statusLbl+'</div>'
+            +'</div>'
+            +'</div>'
+            +(so&&so.voteNote?'<div style="font-size:10px;color:var(--g500);font-style:italic">"'+so.voteNote.substring(0,60)+'"</div>':"")
+            +'</div>'
+        }).join('')
+      +'</div></div>'
+  }
+
+  // Decision block
+  var existingTask=TASKS.find(function(tk){return tk.source==="renewal_funnel"&&tk.vendorId===rd.vendorId&&tk.status!=="done"})
+  var decBlock='<div style="padding:12px 16px;border-top:1px solid var(--g100)">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Decision</div>'
+    +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+    +(!isReadOnly()
+      ?'<select onchange="updateRenewalDecision('+rd.vendorId+',this.value,this)" style="font-size:var(--fs-xs);font-weight:var(--fw-semi);padding:6px 10px;border-radius:var(--r-sm);border:1.5px solid '+(rd.decision?"#a8e6c8":"var(--g200)")+';background:'+(rd.decision?decBg[rd.decision]||"#fff":"#fff")+';color:'+(rd.decision?decColors[rd.decision]||"var(--g500)":"var(--g400)")+';cursor:pointer;outline:none">'
+        +'<option value="">— Choose —</option>'
+        +Object.keys(decLabels).map(function(d){return'<option value="'+d+'"'+(rd.decision===d?' selected':'')+'>'+decLabels[d]+'</option>'}).join('')
+        +'</select>'
+      :(rd.decision
+        ?'<span style="font-size:var(--fs-xs);font-weight:var(--fw-semi);padding:4px 10px;border-radius:var(--r-pill);background:'+(decBg[rd.decision]||"var(--g100)")+';color:'+(decColors[rd.decision]||"var(--g500)")+'">'+decLabels[rd.decision]+'</span>'
+        :'<span style="font-size:var(--fs-xs);color:var(--g300)">No decision yet</span>'))
+    +(!isReadOnly()
+      ?(existingTask
+        ?'<button onclick="openTaskCtx('+existingTask.id+')" style="font-size:var(--fs-xs);font-weight:var(--fw-semi);padding:6px 11px;border-radius:var(--r-sm);border:1.5px solid var(--gov);background:var(--gov-l);color:var(--gov);cursor:pointer">View task →</button>'
+        :'<button onclick="renewalToTask('+rd.vendorId+')" style="font-size:var(--fs-xs);padding:6px 11px;border-radius:var(--r-sm);border:1px solid var(--g200);background:#fff;color:var(--g600);cursor:pointer">+ Task</button>')
+      :"")
+    +'</div>'
+    +(rd.rationale?'<div style="margin-top:8px;font-size:var(--fs-xs);color:var(--g600);font-style:italic;background:var(--g50);border-radius:var(--r-sm);padding:8px 10px">"'+rd.rationale+'"</div>':"")
+    +'</div>'
+
+  // Discussion thread
+  var disc='<div style="padding:12px 16px;border-top:1px solid var(--g100)">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Discussion</div>'
+    +renderRenewalCommentThread(rd.vendorId)
+    +'</div>'
+
+  return '<div style="background:#fff;border:1px solid var(--g150);border-radius:var(--r-md);overflow:hidden">'
+    +hdr+actionBlock+timeline+signoffSection+decBlock+disc
+    +'</div>'
+}
+
 
 function updateRenewalDecision(vendorId, val, selectEl){
   var rd = RENEWAL_DATA.find(function(r){return r.vendorId===vendorId})
