@@ -627,7 +627,7 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
 .donut-dot{width:9px;height:9px;border-radius:50%}
 
 /* ═══════════════════ ALERTS ═══════════════════ */
-.alert-list{display:flex;flex-direction:column;gap:9px;max-width:840px}
+.alert-list{display:flex;flex-direction:column;gap:9px}
 .alert-item{background:#fff;border-radius:var(--r);border:1px solid var(--g200);border-left:4px solid;padding:12px 15px;display:flex;align-items:flex-start;gap:12px;box-shadow:var(--sh);animation:fadeUp .35s ease both}
 .alert-icon{width:33px;height:33px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .alert-title{font-size:12px;font-weight:700}
@@ -638,20 +638,22 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
 .alert-action-btn{background:var(--gov);color:#fff;border:none;border-radius:7px;padding:4px 11px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap}
 .alert-action-btn:hover{background:var(--gov-d)}
 /* alert triage v2 */
-.al-sum-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px;max-width:840px}
-.al-sum-card{padding:11px 14px;border-radius:var(--r-sm);border:1px solid;text-align:center}
+.al-sum-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.al-sum-card{padding:11px 14px;border-radius:var(--r-sm);border:1px solid;text-align:center;cursor:pointer;transition:box-shadow .15s,border-width .15s}
+.al-sum-card:hover{box-shadow:0 0 0 2px currentColor}
+.al-sum-card.al-sum-active{border-width:2px;box-shadow:0 0 0 2px currentColor}
 .al-sum-num{font-size:22px;font-weight:700;line-height:1.1;margin-bottom:2px}
 .al-sum-lbl{font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;line-height:1.3}
 .al-sum-red{background:#fdecea;border-color:#f09595;color:#a32d2d}
 .al-sum-amber{background:#fef3e0;border-color:#fac775;color:#854f0b}
 .al-sum-gray{background:#f0f2f5;border-color:#d3d7de;color:#4a5568}
-.al-grp-hdr{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:var(--r-sm);margin-bottom:6px;cursor:pointer;background:var(--g75);border:1px solid var(--g150);user-select:none;max-width:840px}
+.al-grp-hdr{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:var(--r-sm);margin-bottom:6px;cursor:pointer;background:var(--g75);border:1px solid var(--g150);user-select:none}
 .al-grp-title{font-size:13px;font-weight:600;color:var(--g700)}
 .al-grp-count{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700}
 .al-cnt-red{background:#fdecea;color:#a32d2d}
 .al-cnt-amber{background:#fef3e0;color:#854f0b}
 .al-cnt-gray{background:#f0f2f5;color:#4a5568}
-.al-rows-wrap{max-width:840px;margin-bottom:12px}
+.al-rows-wrap{margin-bottom:12px}
 .al-row{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#fff;border:1px solid var(--g150);border-left-width:3px;margin-bottom:1px}
 .al-row:first-child{border-radius:var(--r-sm) var(--r-sm) 0 0}
 .al-row:last-child{border-radius:0 0 var(--r-sm) var(--r-sm);margin-bottom:0}
@@ -668,7 +670,7 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
 .al-btn-snooze{font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid var(--g200);background:#fff;color:var(--g400);cursor:pointer;white-space:nowrap}
 .al-btn-snooze:hover{background:var(--g75)}
 .al-unread-dot{width:7px;height:7px;border-radius:50%;background:#378ADD;flex-shrink:0;margin-top:5px}
-.al-fyi-collapsed{font-size:12px;color:var(--g500);padding:9px 14px;border:1px solid var(--g150);border-radius:var(--r-sm);max-width:840px;cursor:pointer;margin-bottom:4px}
+.al-fyi-collapsed{font-size:12px;color:var(--g500);padding:9px 14px;border:1px solid var(--g150);border-radius:var(--r-sm);cursor:pointer;margin-bottom:4px}
 .al-fyi-collapsed:hover{background:var(--g75)}
 
 /* ═══════════════════ MANAGER ═══════════════════ */
@@ -5977,23 +5979,32 @@ function mockClause(text){
 }
 
 /* ──────────────── ALERTS ──────────────── */
-var _alCollapsed = {critical:false, attention:false, fyi:true}
-var _alSnoozed   = {}
+var _alCollapsed   = {critical:false, attention:false, fyi:true}
+var _alSnoozed     = {}
+var _alGroupFilter = null  // null = all, 'critical'|'attention'|'fyi' = filtered
 
-function alToggleGroup(key){
-  _alCollapsed[key] = !_alCollapsed[key]
+function _alRerender(){
   _renderAlertList(
     (document.getElementById('alert-search')||{value:''}).value.toLowerCase().trim(),
     (document.getElementById('alert-tag-filter')||{value:'all'}).value
   )
 }
 
+function alToggleGroup(key){
+  _alCollapsed[key] = !_alCollapsed[key]
+  _alRerender()
+}
+
 function snoozeAlert(key, days){
   _alSnoozed[key] = Date.now() + days*86400000
-  _renderAlertList(
-    (document.getElementById('alert-search')||{value:''}).value.toLowerCase().trim(),
-    (document.getElementById('alert-tag-filter')||{value:'all'}).value
-  )
+  _alRerender()
+}
+
+function alFilterGroup(key){
+  _alGroupFilter = (_alGroupFilter===key) ? null : key
+  // When filtering to a group, expand it
+  if(_alGroupFilter) _alCollapsed[_alGroupFilter] = false
+  _alRerender()
 }
 
 function filterAlerts(){
@@ -6129,9 +6140,12 @@ function _renderAlertList(q, tag){
   // Update summary strip
   var strip = document.getElementById('al-summary-strip')
   if(strip) strip.innerHTML = '<div class="al-sum-strip">'
-    +'<div class="al-sum-card al-sum-red"><div class="al-sum-num">'+critical.length+'</div><div class="al-sum-lbl">Act now</div></div>'
-    +'<div class="al-sum-card al-sum-amber"><div class="al-sum-num">'+attention.length+'</div><div class="al-sum-lbl">Needs attention</div></div>'
-    +'<div class="al-sum-card al-sum-gray"><div class="al-sum-num">'+fyi.length+'</div><div class="al-sum-lbl">For your info</div></div>'
+    +'<div class="al-sum-card al-sum-red'+(_alGroupFilter==='critical'?' al-sum-active':'')+'" onclick="alFilterGroup(\'critical\')" title="Show only Act now">'
+    +'<div class="al-sum-num">'+critical.length+'</div><div class="al-sum-lbl">Act now</div></div>'
+    +'<div class="al-sum-card al-sum-amber'+(_alGroupFilter==='attention'?' al-sum-active':'')+'" onclick="alFilterGroup(\'attention\')" title="Show only Needs attention">'
+    +'<div class="al-sum-num">'+attention.length+'</div><div class="al-sum-lbl">Needs attention</div></div>'
+    +'<div class="al-sum-card al-sum-gray'+(_alGroupFilter==='fyi'?' al-sum-active':'')+'" onclick="alFilterGroup(\'fyi\')" title="Show only For your info">'
+    +'<div class="al-sum-num">'+fyi.length+'</div><div class="al-sum-lbl">For your info</div></div>'
     +'</div>'
 
   var list = document.getElementById('alert-list')
@@ -6173,15 +6187,16 @@ function _renderAlertList(q, tag){
   }
 
   var html = ''
-  html += groupHTML(critical,'critical','Act now',
+  var gf = _alGroupFilter
+  if(!gf||gf==='critical') html += groupHTML(critical,'critical','Act now',
     '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
     '#c0392b','al-cnt-red',_alCollapsed.critical)
-  html += groupHTML(attention,'attention','Needs attention',
+  if(!gf||gf==='attention') html += groupHTML(attention,'attention','Needs attention',
     '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
     '#d97706','al-cnt-amber',_alCollapsed.attention)
 
-  if(fyi.length){
-    if(_alCollapsed.fyi){
+  if((!gf||gf==='fyi') && fyi.length){
+    if(_alCollapsed.fyi&&!gf){
       html += '<div class="al-fyi-collapsed" onclick="alToggleGroup(\'fyi\')">'
         +'&#9650; <strong>'+fyi.length+'</strong> for-your-info — mentions, handoffs, retention. Click to expand.</div>'
     } else {
