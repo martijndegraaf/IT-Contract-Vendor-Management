@@ -1028,7 +1028,7 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
           <button class="fbtn" onclick="setKraljicFilter('routine',this)">Routine</button>
         </div>
         <div style="width:1px;height:18px;background:var(--g200)"></div>
-        <button id="vendor-mine-btn" class="fbtn" onclick="toggleVendorMineFilter(this)">Mine</button>
+        <button id="vendor-mine-btn" class="fbtn active" onclick="toggleVendorMineFilter(this)">Mine</button>
         <button id="vendor-action-btn" class="fbtn" onclick="toggleVendorActionFilter(this)">Action needed</button>
         <div style="width:1px;height:18px;background:var(--g200)"></div>
         <span style="font-size:10px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.05em">Sort</span>
@@ -1888,7 +1888,7 @@ let currentPersona = "cm"
 let ragFilter = "all"
 let ragFilter2 = "all"
 let kraljicFilter = "all"
-let vendorMineFilter = false
+let vendorMineFilter = true
 let vendorActionFilter = false
 let riskFilter = "all"
 let taskFilter = "all"
@@ -2091,7 +2091,7 @@ function updateDashboardHeader(){
 function renderCurrentView(){
   switch(currentView){
     case"dashboard": renderDashboard();break
-    case"vendors":   renderVendorsFull();break
+    case"vendors":   renderVendors();break
     case"contracts": renderContracts();break
     case"renewal":   renderRenewal();break
     case"tasks":     renderTasks();break
@@ -11404,6 +11404,24 @@ function ctColVisibilityPanel(){
   document.addEventListener("click", function close(){ div.remove(); document.removeEventListener("click",close) }, {once:true})
 }
 
+/* ── 6. VENDOR ENTRY — persona-aware filter init ── */
+function renderVendors(){
+  var p = currentPersona
+  // MGR sees all by default; CE and PO are locked to mine; CM/SLM default to mine
+  if(p==='mgr'){
+    vendorMineFilter = false
+  } else {
+    vendorMineFilter = true  // cm, ce, po, slm all start on Mine
+  }
+  // Mine button: hidden for CE and PO (locked), visible for everyone else
+  var mineBtn = document.getElementById('vendor-mine-btn')
+  if(mineBtn){
+    mineBtn.style.display = (p==='ce'||p==='po') ? 'none' : ''
+    mineBtn.classList.toggle('active', vendorMineFilter)
+  }
+  renderVendorsFull()
+}
+
 /* ── 6. VENDOR PORTFOLIO / LIST VIEW ────────────── */
 var vendorViewMode  = "portfolio"   // "portfolio" | "grid" | "list"
 var vendorSortKey   = "score"       // "score" | "expiry" | "value" | "name"
@@ -11586,7 +11604,7 @@ function renderVendorsFull(){
     if(ragFilter2!=="all"&&r!==ragFilter2) return false
     if(!vName(v).toLowerCase().includes(searchQuery.toLowerCase())) return false
     if(kraljicFilter!=="all"&&v.kraljic_category!==kraljicFilter) return false
-    if(vendorMineFilter&&v.account_manager!==myName) return false
+    if(vendorMineFilter&&stripSuffix(v.internal_owner)!==myName) return false
     if(vendorActionFilter){
       var hasOpenTask=TASKS.some(function(t){return t.vendorId===v.id&&t.status==="open"})
       var rd=RENEWAL_DATA.find(function(r){return r.vendorId===v.id})
