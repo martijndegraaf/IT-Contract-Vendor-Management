@@ -6343,11 +6343,11 @@ function renderUsersTab(){
     +'<td><span class="user-status" style="background:'+statusBg[u.status]+';color:'+statusColor[u.status]+'">'+u.status+'</span></td>'
     +'<td style="color:var(--g400)">'+u.created+'</td>'
     +'<td><div style="display:flex;gap:5px">'
-    +'<button class="user-action-btn" onclick="openUserForm('+u.id+')">Edit</button>'
+    +'<button class="user-action-btn" onclick="openUserForm(\''+u.id+'\')">Edit</button>'
     +'<button class="user-action-btn" onclick="sendInvite(\''+u.email+'\',\''+u.name.replace(/'/g,"\\'")+ '\',\''+u.role+'\')" style="background:#eef4ff;color:#154273;border-color:#c2d4f5" title="Stuur uitnodigingsmail">✉️ Invite</button>'
-    +(isMgr?'<button class="user-action-btn" onclick="openTeamPanel('+u.id+')" style="background:#eaf7f1;color:#1a7a4a;border-color:#a8e6c8">Team</button>':'')
-    +'<button class="user-action-btn" onclick="toggleUserStatus('+u.id+')" style="min-width:64px">'+(u.status==="active"?"Deactivate":"Activate")+'</button>'
-    +'<button class="user-action-btn danger" onclick="deleteUser('+u.id+')">Delete</button>'
+    +(isMgr?'<button class="user-action-btn" onclick="openTeamPanel(\''+u.id+'\')" style="background:#eaf7f1;color:#1a7a4a;border-color:#a8e6c8">Team</button>':'')
+    +'<button class="user-action-btn" onclick="toggleUserStatus(\''+u.id+'\')" style="min-width:64px">'+(u.status==="active"?"Deactivate":"Activate")+'</button>'
+    +'<button class="user-action-btn danger" onclick="deleteUser(\''+u.id+'\')">Delete</button>'
     +'</div></td>'
     +'</tr>'
   }).join("")
