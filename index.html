@@ -12667,6 +12667,11 @@ function _saveNewPassword(token){
   .then(function(r){ return r.json() })
   .then(function(data){
     if(data.error){ var e=document.getElementById('spw-error'); e.textContent=data.error_description||data.error; e.style.display='block'; return }
+    // Activate the user in PVSP on successful password setup
+    if(data.email){
+      var u = USERS.find(function(u){ return (u.email||'').toLowerCase() === data.email.toLowerCase() })
+      if(u && u.status !== 'active'){ u.status = 'active'; autoSave() }
+    }
     var overlay=document.getElementById('pvsp-setpw-overlay')
     if(overlay) overlay.remove()
     toast('✓ Wachtwoord opgeslagen! Je kunt nu inloggen.')
