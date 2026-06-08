@@ -3168,6 +3168,7 @@ let ctFilterStatus = "all"
 let ctFilterType   = "all"
 let ctFilterDomain = "all"
 let ctFilterSearch = ""
+let ctMineFilter   = false  // set by persona on each view entry
 let ctSortKey = "end"
 let ctSortDir = "asc"
 
@@ -3188,8 +3189,10 @@ var ctViewMode = "table"
 var ctTriageCollapsed = {critical:false,attention:false,ok:true}
 
 function getFilteredContracts(){
+  var myName = _session&&_session.user?_session.user.name:""
   return allContracts().filter(c=>{
     const vendorOk = ctFilterVendor==="all" || c.vendor.id===+ctFilterVendor
+    const mineOk   = !ctMineFilter || stripSuffix(c.vendor.internal_owner)===myName
     const statusOk = ctFilterStatus==="all" || c.status===ctFilterStatus
     const typeOk   = ctFilterType==="all"   || c.type===ctFilterType
     const domainOk = ctFilterDomain==="all" || (c.domain||c.vendor.domain)===ctFilterDomain
@@ -3208,7 +3211,7 @@ function getFilteredContracts(){
     const colEndT   = !ctColFilters.end_to     || (c.end&&c.end<=ctColFilters.end_to)
     const colNotMin = !ctColFilters.notice_min || (c.notice!=null&&+c.notice>=+ctColFilters.notice_min)
     const colNotMax = !ctColFilters.notice_max || (c.notice!=null&&+c.notice<=+ctColFilters.notice_max)
-    return vendorOk&&statusOk&&typeOk&&domainOk&&searchOk&&colName&&colVend&&colDom&&colLegal&&colVal&&colType&&colStatus&&colStartF&&colStartT&&colEndF&&colEndT&&colNotMin&&colNotMax
+    return vendorOk&&mineOk&&statusOk&&typeOk&&domainOk&&searchOk&&colName&&colVend&&colDom&&colLegal&&colVal&&colType&&colStatus&&colStartF&&colStartT&&colEndF&&colEndT&&colNotMin&&colNotMax
   })
 }
 
@@ -3292,16 +3295,21 @@ function renderCtModeBar(){
     ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:'+(ctViewMode==="triage"?"rgba(255,255,255,.25)":"#fdecea")+';color:'+(ctViewMode==="triage"?"#fff":"#c0392b")+'">'+urgentCount+' urgent</span>'
     : ""
   var pinTip='Clicking a view remembers it as your default'
+  var mineVisible = currentPersona!=='ce'&&currentPersona!=='po'
+  var mineBtn = mineVisible
+    ? '<button onclick="toggleCtMineFilter()" style="'+(ctMineFilter?btnActive:btnInact)+btnBase+'">Mine</button>'
+    : ''
   el.innerHTML='<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">'
     +'<button onclick="ctSetViewMode(\'triage\')" title="'+pinTip+'" style="'+(ctViewMode==="triage"?btnActive:btnInact)+btnBase+'">'+urgPill+'Triage'+(ctViewMode==="triage"?' <span style="font-size:9px;opacity:.7">&#9734; default</span>':'')+'</button>'
     +'<button onclick="ctSetViewMode(\'table\')" title="'+pinTip+'" style="'+(ctViewMode==="table"?btnActive:btnInact)+btnBase+'">All contracts ('+allContracts().length+')'+(ctViewMode==="table"?' <span style="font-size:9px;opacity:.7">&#9734; default</span>':'')+'</button>'
+    +mineBtn
     +'</div>'
 }
 
 function renderCtTriage(){
   var el=document.getElementById("ct-triage-mount")
   if(!el) return
-  var all=allContracts()
+  var all=getFilteredContracts()
   var critical=[],attention=[],ok=[]
   all.forEach(function(c){
     var d=daysLeft(c.end)
@@ -3520,7 +3528,18 @@ function renderCtHeaders(){
 
 
 
+function toggleCtMineFilter(){
+  if(currentPersona==='ce'||currentPersona==='po') return  // locked
+  ctMineFilter = !ctMineFilter
+  renderContracts()
+}
+
 function renderContracts(){
+  // Persona-based mine filter defaults
+  var p = currentPersona
+  if(p==='mgr')          ctMineFilter = false
+  else                   ctMineFilter = true   // cm, ce, po, slm all default to mine
+
   injectRbacBanner("contracts");
   var utb = document.getElementById("upload-toggle-btn")
   if(utb) utb.style.display = isReadOnly() ? "none" : ""
