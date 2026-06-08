@@ -433,7 +433,7 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
 /* ═══════════════════ TASK CONTEXT SLIDEOUT (left) ═══════════════════ */
 .task-ctx-overlay{position:fixed;inset:0;z-index:155;background:rgba(10,20,40,.35);opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(2px)}
 .task-ctx-overlay.open{opacity:1;pointer-events:all}
-.task-ctx-drawer{position:fixed;top:0;left:var(--sw);bottom:0;width:600px;background:#fff;box-shadow:8px 0 48px rgba(10,20,40,.18);transform:translateX(-100%);transition:transform .32s cubic-bezier(.4,0,.2,1);overflow-y:auto;z-index:156;display:flex;flex-direction:column}
+.task-ctx-drawer{position:fixed;top:0;right:0;bottom:0;width:420px;background:#fff;box-shadow:-8px 0 48px rgba(10,20,40,.18);transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);overflow-y:auto;z-index:156;display:flex;flex-direction:column}
 .task-ctx-overlay.open .task-ctx-drawer{transform:translateX(0)}
 .task-ctx-head{padding:18px 20px 14px;flex-shrink:0;position:sticky;top:0;z-index:2}
 .task-ctx-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.18);border:none;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:17px;transition:background .15s}
@@ -5058,6 +5058,33 @@ function renderTasks(){
       var doneClass  = t.status==="done" ? " done" : ""
       var isDone     = t.status==="done"
 
+      // Urgency left border colour (overrides priority bar)
+      var urgencyBar = ""
+      if(!isDone && t.due){
+        var cd0 = daysLeft(t.due)
+        urgencyBar = cd0 < 0 ? "#c0392b" : cd0 <= 7 ? "#d97706" : ""
+      }
+      var barColor = urgencyBar || priColor
+
+      // Renewal gate pill
+      var renewalPill = ""
+      if(t.source==="renewal_funnel"){
+        var rd0 = RENEWAL_DATA.find(function(r){return r.vendorId===t.vendorId})
+        var stage0 = rd0 ? (rd0.stage||"t9").toUpperCase() : "T-9"
+        renewalPill = '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:#e0f4f0;color:#0a6e5c;margin-left:4px">'+stage0+' gate</span>'
+      }
+
+      // Expiry context line
+      var expiryLine = ""
+      if(t.vendorId && t.source==="renewal_funnel"){
+        var rd1 = RENEWAL_DATA.find(function(r){return r.vendorId===t.vendorId})
+        if(rd1 && rd1.renewalDate){
+          var expDays = daysLeft(rd1.renewalDate)
+          var expCol = expDays<=18?"#c0392b":expDays<=45?"#d97706":"var(--g400)"
+          expiryLine = '<div style="font-size:9px;color:'+expCol+';font-weight:600;padding-left:8px;margin-top:2px">'+rd1.renewalDate+(expDays<0?" · Expired":" · "+expDays+"d left")+'</div>'
+        }
+      }
+
       // Playbook badge
       var pbBadge = isPlaybook
         ? '<div style="position:absolute;top:8px;right:36px;background:'+catBg+';color:'+catColor+';font-size:7px;font-weight:800;padding:1px 6px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em">Playbook</div>'
@@ -5065,6 +5092,9 @@ function renderTasks(){
 
       // Bulk select checkbox (all tasks)
       var bulkCb = '<div id="tcb-'+t.id+'" onclick="event.stopPropagation();toggleTaskSelect('+t.id+')" style="position:absolute;top:8px;left:8px;width:14px;height:14px;border-radius:3px;border:1.5px solid var(--g200);cursor:pointer;background:'+(_selectedTasks.has(t.id)?"var(--gov)":"")+';transition:background .15s;flex-shrink:0"></div>'
+
+      // Drag handle icon
+      var gripIcon = '<div style="position:absolute;top:50%;right:10px;transform:translateY(-50%);color:var(--g200);font-size:12px;cursor:grab;line-height:1;user-select:none" title="Drag to move">⠿</div>'
 
       // Toggle button — hidden for playbook tasks (must be completed via slideout)
       var toggleBtn = isPlaybook
@@ -5079,11 +5109,13 @@ function renderTasks(){
 
       return '<div class="task-card'+doneClass+'" onclick="'+cardClick+'" draggable="true" ondragstart="handleTaskDragStart(event,'+t.id+')" style="padding-left:28px">'
         + bulkCb
-        + '<div class="task-pri-bar" style="background:'+priColor+'"></div>'
+        + gripIcon
+        + '<div class="task-pri-bar" style="background:'+barColor+'"></div>'
         + pbBadge
         + editBtn
-        + '<div class="task-title'+doneClass+'" style="padding-right:'+(isPlaybook?"78px":"24px")+'">'+(t.title||"")+'</div>'
+        + '<div class="task-title'+doneClass+'" style="padding-right:'+(isPlaybook?"78px":"38px")+'">'+(t.title||"")+renewalPill+'</div>'
         + (t.vendor ? '<div class="task-vendor">'+t.vendor+'</div>' : "")
+        + expiryLine
         + '<div class="task-meta">'
         + (getTaskCommentCount(t.id)>0?'<button onclick="event.stopPropagation();openTaskComments('+t.id+')" title="Comments" style="font-size:9px;padding:1px 7px;border-radius:10px;border:1px solid var(--g200);background:#fff;cursor:pointer;color:var(--g500)">'+getTaskCommentCount(t.id)+' comment'+(getTaskCommentCount(t.id)!==1?'s':'')+'</button>':'')
         + '<span class="task-cat-badge" style="background:'+catBg+';color:'+catColor+'">'+(t.category||"Other")+'</span>'
