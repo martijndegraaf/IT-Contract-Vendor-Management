@@ -922,6 +922,11 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
       <div id="lp-mount"></div>
     </div>
 
+    <!-- MANAGER DASHBOARD -->
+    <div class="view" id="view-manager">
+      <div id="mgr-dash-mount"></div>
+    </div>
+
     <!-- VENDORS -->
     <div class="view" id="view-vendors">
     <div id="compare-trigger" style="display:none;position:sticky;top:58px;z-index:40;background:#154273;color:#fff;padding:8px 18px;align-items:center;gap:10px;border-radius:0 0 8px 8px;font-size:11px;font-weight:600">
@@ -970,23 +975,29 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
 
     <!-- CONTRACTS -->
     <div class="view" id="view-contracts">
-      <div style="max-width:1100px">
-        
-        <!-- Stats -->
-        <div id="ct-stats-bar" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap"></div>
-        <!-- Filter chips -->
-        <div id="ct-filter-chips" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center"></div>
-        <!-- Saved views -->
-        <div id="ct-saved-views" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px"></div>
-        <!-- Table -->
-        <div style="border-radius:var(--r);overflow:hidden">
-          <table class="doc-table" style="table-layout:fixed;width:100%" id="ct-table">
-            <thead id="ct-thead"></thead>
-            <tbody id="ct-tbody"></tbody>
-          </table>
+      <div style="max-width:1200px">
+        <!-- Mode bar -->
+        <div id="ct-mode-bar"></div>
+        <!-- Triage view -->
+        <div id="ct-triage-mount"></div>
+        <!-- Table view (toggled) -->
+        <div id="ct-table-view" style="display:none">
+          <!-- Stats -->
+          <div id="ct-stats-bar" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap"></div>
+          <!-- Filter chips -->
+          <div id="ct-filter-chips" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center"></div>
+          <!-- Saved views -->
+          <div id="ct-saved-views" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px"></div>
+          <!-- Table -->
+          <div style="border-radius:var(--r);overflow:hidden">
+            <table class="doc-table" style="table-layout:fixed;width:100%" id="ct-table">
+              <thead id="ct-thead"></thead>
+              <tbody id="ct-tbody"></tbody>
+            </table>
+          </div>
+          <!-- Pagination -->
+          <div id="ct-pagination"></div>
         </div>
-        <!-- Pagination -->
-        <div id="ct-pagination"></div>
       </div>
     </div>
 
@@ -2019,6 +2030,7 @@ function renderCurrentView(){
     case"analytics": renderAnalytics();break
     case"contacts":  renderContacts_();break
     case"admin":     renderAdmin();break
+    case"manager":   renderManager();break
   }
 }
 
@@ -2080,13 +2092,14 @@ function taskItemHTML(t,showVendor=true){
   const overdue=t.due&&t.due<today,dueToday=t.due===today
   const dueColor=overdue?"#c0392b":dueToday?"#d97706":"var(--g400)"
   const dueBg=overdue?"#fdecea":dueToday?"#fef3e0":"var(--g100)"
-  return`<div class="lp-task-item" onclick="pbCtxNav(event)" data-v="tasks\">
+  const urgencyBorder=overdue?"border-left:3px solid #c0392b;padding-left:10px":dueToday?"border-left:3px solid #d97706;padding-left:10px":""
+  return`<div class="lp-task-item" onclick="pbCtxNav(event)" data-v="tasks" style="${urgencyBorder}">
     <div class="lp-task-pri" style="background:${pc}"></div>
     <div style="flex:1;min-width:0">
       <div class="lp-task-title">${t.title}</div>
       <div class="lp-task-meta">${showVendor&&t.vendor?t.vendor+" · ":""}<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:${CAT_BG[t.category]||"#f5f5f5"};color:${CAT_C[t.category]||"#5c6575"}">${t.category}</span></div>
     </div>
-    ${t.due?`<span class="lp-task-due" style="background:${dueBg};color:${dueColor}">${overdue?"Expired":dueToday?"Vandaag":t.due}</span>`:""}
+    ${t.due?`<span class="lp-task-due" style="background:${dueBg};color:${dueColor}">${overdue?"Overdue":dueToday?"Today":t.due}</span>`:""}
   </div>`
 }
 function vendorRowHTML(v,showScore=true){
@@ -2266,12 +2279,12 @@ function renderLandingCE(){
               const v=VENDORS.find(x=>x.id===rd.vendorId)
               const days=daysLeft(rd.endDate)
               const score=v?calcScore(v.h):50
-              return`<div class="lp-decision" onclick="pbCtxNav(event)" data-v="renewal\">
+              return`<div class="lp-decision" onclick="pbCtxNav(event)" data-v="renewal">
                 <div class="lp-decision-icon" style="background:#fef3e0">${ICONS.renewal}</div>
                 <div style="flex:1;min-width:0">
                   <div class="lp-decision-title">${v?vName(v):"–"} — ${rd.contract}</div>
                   <div class="lp-decision-meta">End: ${rd.endDate} · <strong style="color:${days<=90?"#c0392b":"#d97706"}">${days}d</strong> · ${fmtEur(rd.val)}</div>
-                  <div class="lp-decision-badge" style="background:#fdecea;color:#c0392b">Decision vereist</div>
+                  <div class="lp-decision-badge" style="background:#fdecea;color:#c0392b">Decision required</div>
                 </div>
                 ${miniScoreArc(score,34)}
               </div>`}).join("")
@@ -2428,7 +2441,7 @@ function renderLandingPO(){
 
       ${sectionHTML("Renewals — PO validation required",ICONS.renewal,renewalNeedingPO.length,"#d97706","#fef3e0","Renewal","renewal",
         renewalNeedingPO.length
-          ?renewalNeedingPO.map(rd=>{const v=VENDORS.find(x=>x.id===rd.vendorId);const days=daysLeft(rd.endDate);return`<div class="lp-decision" onclick="pbCtxNav(event)" data-v="renewal\">
+          ?renewalNeedingPO.map(rd=>{const v=VENDORS.find(x=>x.id===rd.vendorId);const days=daysLeft(rd.endDate);return`<div class="lp-decision" onclick="pbCtxNav(event)" data-v="renewal">
             <div class="lp-decision-icon" style="background:#fef3e0">${ICONS.renewal}</div>
             <div style="flex:1">
               <div class="lp-decision-title">${v?vName(v):"–"}</div>
@@ -2563,7 +2576,7 @@ function renderLandingMGR(){
   + '<div class="heatmap-grid">'
   + VENDORS.map(function(v){
       var cs=compScore(v.compliance)||0; var r=rag(cs)
-      return '<div class="heatmap-cell" style="background:'+RC[r]+'18;border-color:'+RC[r]+'44" onclick=\"pbCtxNav(event)" data-v="vendors\\" title="'+vName(v)+' — '+cs+'%">'
+      return '<div class="heatmap-cell" style="background:'+RC[r]+'18;border-color:'+RC[r]+'44" onclick="pbCtxNav(event)" data-v="vendors" title="'+vName(v)+' — '+cs+'%">'
       +'<div style="font-size:9px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:'+RC[r]+'">'+vName(v).split(" ")[0]+'</div>'
       +'<div style="font-size:15px;font-weight:800;font-family:Syne,sans-serif;color:'+RC[r]+'">'+cs+'%</div>'
       +'<div style="font-size:8px;color:'+RC[r]+'">'+(v.compliance&&v.compliance.nis2_compliant?"✓ NIS2":"✗ NIS2")+' · '+(v.compliance&&v.compliance.iso_27001_certified?"✓ ISO":"✗ ISO")+'</div>'
@@ -2612,7 +2625,7 @@ function renderLandingMGR(){
 
   // Team workload
   + '<div class="card" style="padding:13px">'
-  + '<div style="font-size:12px;font-weight:700;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">Team Workload<button onclick="pbCtxNav(event)" data-v="tasks\" style="font-size:9px;color:var(--gov);background:var(--gov-l);border:none;border-radius:5px;padding:3px 9px;cursor:pointer;font-weight:700">All tasks →</button></div>'
+  + '<div style="font-size:12px;font-weight:700;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">Team Workload<button onclick="showView(\'tasks\')" style="font-size:9px;color:var(--gov);background:var(--gov-l);border:none;border-radius:5px;padding:3px 9px;cursor:pointer;font-weight:700">All tasks →</button></div>'
   + team.map(function(tm){
       var count=tasksByAssignee[tm.name]||0
       var pct=Math.min((count/8)*100,100)
@@ -2633,7 +2646,7 @@ function renderLandingMGR(){
   + renewalDecisions.map(function(rd){
       var v=VENDORS.find(function(x){return x.id===rd.vendorId})
       var days=daysLeft(rd.endDate)
-      return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--g100);cursor:pointer" onclick="pbCtxNav(event)" data-v="renewal\">'
+      return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--g100);cursor:pointer" onclick="showView(\'renewal\')">'
       +'<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(v?vName(v):"-")+'</div>'
       +'<div style="font-size:9px;color:var(--g400)">'+fmtEur(rd.val)+' · <strong style="color:'+(days<=90?"#c0392b":"#d97706")+'">'+days+'d</strong></div></div>'
       +'<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;background:#fdecea;color:#c0392b;flex-shrink:0">Decision required</span>'
@@ -3098,6 +3111,8 @@ var ctGroupBy  = "none"
 var ctDensity  = "comfortable"
 var ctHiddenCols = {}
 var ctSavedViews = []
+var ctViewMode = "triage"
+var ctTriageCollapsed = {critical:false,attention:false,ok:true}
 
 function getFilteredContracts(){
   return allContracts().filter(c=>{
@@ -3178,6 +3193,150 @@ function renderCtStats(list){
     `<div style="font-size:11px;color:var(--g600);font-weight:600;line-height:28px">${list.length} contract${list.length!==1?"s":""} · <span class="mono" style="color:var(--gov)">${fmtEur(totalVal)}</span></div>`+
     statusItems+
     (hasColF?`<button onclick="clearAllCtColFilters()" style="margin-left:auto;background:var(--teal-bg);color:var(--teal);border:1px solid rgba(14,124,135,.2);border-radius:20px;padding:3px 11px;font-size:10px;font-weight:700;cursor:pointer">✕ Clear filters</button>`:"")
+}
+
+
+/* ─── CONTRACTS — TRIAGE VIEW ─────────────────────────────── */
+function ctSetViewMode(mode){
+  ctViewMode=mode
+  renderContracts()
+}
+
+function ctToggleTriageGroup(key){
+  ctTriageCollapsed[key]=!ctTriageCollapsed[key]
+  renderCtTriage()
+}
+
+function renderCtModeBar(){
+  var el=document.getElementById("ct-mode-bar")
+  if(!el) return
+  var urgentCount=allContracts().filter(function(c){return daysLeft(c.end)<=90}).length
+  var btnBase=";padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid;display:inline-flex;align-items:center;gap:5px"
+  var btnActive="background:#154273;color:#fff;border-color:#154273"
+  var btnInact="background:var(--g50);color:var(--g600);border-color:var(--g200)"
+  var urgPill=urgentCount>0
+    ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:'+(ctViewMode==="triage"?"rgba(255,255,255,.25)":"#fdecea")+';color:'+(ctViewMode==="triage"?"#fff":"#c0392b")+'">'+urgentCount+' need action</span>'
+    : ""
+  el.innerHTML='<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">'
+    +'<button onclick="ctSetViewMode(\'triage\')" style="'+(ctViewMode==="triage"?btnActive:btnInact)+btnBase+'">'+urgPill+'Triage</button>'
+    +'<button onclick="ctSetViewMode(\'table\')" style="'+(ctViewMode==="table"?btnActive:btnInact)+btnBase+'">All contracts ('+allContracts().length+')</button>'
+    +'</div>'
+}
+
+function renderCtTriage(){
+  var el=document.getElementById("ct-triage-mount")
+  if(!el) return
+  var all=allContracts()
+  var critical=[],attention=[],ok=[]
+  all.forEach(function(c){
+    var d=daysLeft(c.end)
+    if(d<=30) critical.push(c)
+    else if(d<=90) attention.push(c)
+    else ok.push(c)
+  })
+  function byd(a,b){return daysLeft(a.end)-daysLeft(b.end)}
+  critical.sort(byd);attention.sort(byd);ok.sort(byd)
+  function sumVal(list){return list.reduce(function(s,c){return s+c.value},0)}
+
+  var html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">'
+    +ctTriageSummaryCard(critical.length,"Expired / ≤30d","#a32d2d","#fcebeb","#f09595")
+    +ctTriageSummaryCard(attention.length,"Expiring 30–90d","#854f0b","#faeeda","#fac775")
+    +ctTriageSummaryCard(ok.length,"On track","#3b6d11","#eaf3de","#c0dd97")
+    +'</div>'
+  html+=ctTriageGroupHTML("critical","Immediate action required",critical,sumVal(critical),"#c0392b","#a32d2d","#fcebeb","#f09595")
+  html+=ctTriageGroupHTML("attention","Attention — expiring 30–90 days",attention,sumVal(attention),"#d97706","#854f0b","#faeeda","#fac775")
+  html+=ctTriageGroupHTML("ok","On track — no action needed",ok,sumVal(ok),"#1a9e5c","#3b6d11","#eaf3de","#c0dd97")
+
+  // Summary footer
+  var total=allContracts().length
+  var totalVal=all.reduce(function(s,c){return s+c.value},0)
+  html+='<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--g50);border-radius:var(--r);margin-top:4px;font-size:10px;color:var(--g600)">'
+    +'<span><strong style="color:var(--g800)">'+total+'</strong> contracts total</span>'
+    +'<span style="color:var(--g300)">·</span>'
+    +'<span>Portfolio value: <strong style="color:var(--gov);font-family:\'DM Mono\',monospace">'+fmtEur(totalVal)+'</strong></span>'
+    +'<span style="margin-left:auto;display:flex;gap:6px">'
+    +'<button onclick="ctSetViewMode(\'table\')" style="padding:3px 10px;border-radius:5px;border:1px solid var(--g200);background:#fff;color:var(--g600);font-size:10px;cursor:pointer">All contracts →</button>'
+    +'</span>'
+    +'</div>'
+
+  el.innerHTML=html
+}
+
+function ctTriageSummaryCard(count,label,textColor,bgColor,borderColor){
+  return '<div style="background:'+bgColor+';border:1px solid '+borderColor+';border-radius:var(--r-md);padding:10px 14px;text-align:center">'
+    +'<div style="font-size:22px;font-weight:800;color:'+textColor+';font-family:\'Syne\',sans-serif;line-height:1">'+count+'</div>'
+    +'<div style="font-size:10px;color:'+textColor+';margin-top:3px;font-weight:600">'+label+'</div>'
+    +'</div>'
+}
+
+function ctTriageGroupHTML(key,title,list,totalVal,dotColor,labelColor,bgColor,borderColor){
+  var collapsed=ctTriageCollapsed[key]
+  var countBadge='<span style="font-size:9px;font-weight:700;padding:1px 7px;border-radius:20px;background:'+bgColor+';color:'+labelColor+';border:1px solid '+borderColor+'">'
+    +list.length+' contract'+(list.length!==1?'s':'')+' · '+fmtEur(totalVal)+'</span>'
+  var html='<div style="background:#fff;border-radius:var(--r);border:1px solid var(--g150);margin-bottom:10px;overflow:hidden">'
+    +'<div onclick="ctToggleTriageGroup(\''+key+'\')" style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--g50);cursor:pointer;user-select:none;border-bottom:1px solid var(--g100)">'
+    +'<div style="width:9px;height:9px;border-radius:50%;background:'+dotColor+';flex-shrink:0"></div>'
+    +'<span style="font-size:11px;font-weight:700;color:'+labelColor+'">'+title+'</span>'
+    +countBadge
+    +'<span style="margin-left:auto;font-size:12px;color:var(--g400)">'+(collapsed?'&#9656;':'&#9662;')+'</span>'
+    +'</div>'
+  if(!collapsed){
+    if(list.length===0){
+      html+='<div style="padding:14px;text-align:center;color:var(--g400);font-size:11px">✓ No contracts in this group</div>'
+    } else {
+      // Column header row
+      html+='<div style="display:grid;grid-template-columns:1fr 88px 76px 54px 78px 96px 82px;gap:0;padding:5px 14px;background:var(--g50);border-bottom:1px solid var(--g100);font-size:9px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.05em">'
+        +'<div>Contract</div><div>Status</div><div>Type</div>'
+        +'<div style="text-align:center">Days</div><div>Value</div><div>Warning</div><div style="text-align:right">Action</div>'
+        +'</div>'
+      html+=list.map(function(c){return ctTriageRowHTML(c,key)}).join('')
+    }
+  }
+  html+='</div>'
+  return html
+}
+
+function ctTriageRowHTML(c,key){
+  var v=c.vendor
+  var d=daysLeft(c.end)
+  var st=CT_STATUS[c.status]||{label:c.status,color:"#5c6575",bg:"#f5f5f5"}
+  var ct2=CT_TYPE[c.type]||{label:c.type,color:"#5c6575",bg:"#f5f5f5"}
+  var borderColor=key==="critical"?"#c0392b":key==="attention"?"#d97706":"#1a9e5c"
+  var daysLabel=d<=0?Math.abs(d)+"d ago":d+"d"
+  var daysColor=d<=0?"#c0392b":d<=30?"#c0392b":d<=90?"#d97706":"var(--g600)"
+
+  // Warning badges
+  var warnings=[]
+  if(!c.signed) warnings.push('<span style="font-size:9px;font-weight:700;color:#c0392b;background:#fdecea;padding:2px 6px;border-radius:4px">⚠ Unsigned</span>')
+  if(c.notice&&d>0&&d<=(c.notice+14)){
+    var noticeDue=d-c.notice
+    warnings.push('<span style="font-size:9px;font-weight:700;color:#c0392b;background:#fdecea;padding:2px 6px;border-radius:4px">'+(noticeDue<=0?'⚠ Notice overdue':'⚠ Notice in '+noticeDue+'d')+'</span>')
+  }
+  var warningHTML=warnings.join('<br>')
+
+  // Contextual action
+  var actionBtn
+  if(d<=0||c.status==="verlopen"){
+    actionBtn='<button onclick="event.stopPropagation();openCtDetail(\''+c.id+'\')" style="padding:3px 10px;border-radius:5px;border:1px solid #c0392b;background:#fdecea;color:#c0392b;font-size:10px;font-weight:700;cursor:pointer">Renew →</button>'
+  } else if(c.status==="renewal"){
+    actionBtn='<button onclick="event.stopPropagation();showView(\'renewal\')" style="padding:3px 10px;border-radius:5px;border:1px solid #d97706;background:#fef3e0;color:#92500f;font-size:10px;font-weight:700;cursor:pointer">Funnel →</button>'
+  } else if(!c.signed){
+    actionBtn='<button onclick="event.stopPropagation();openCtDetail(\''+c.id+'\')" style="padding:3px 10px;border-radius:5px;border:1px solid #c0392b;background:#fdecea;color:#c0392b;font-size:10px;font-weight:700;cursor:pointer">Sign →</button>'
+  } else {
+    actionBtn='<button onclick="event.stopPropagation();openCtDetail(\''+c.id+'\')" style="padding:3px 10px;border-radius:5px;border:1px solid var(--g200);background:#fff;color:var(--g600);font-size:10px;cursor:pointer">Detail</button>'
+  }
+
+  return '<div onclick="openCtDetail(\''+c.id+'\')" style="display:grid;grid-template-columns:1fr 88px 76px 54px 78px 96px 82px;gap:0;align-items:center;padding:8px 14px 8px 11px;border-bottom:1px solid var(--g100);cursor:pointer;border-left:3px solid '+borderColor+'" onmouseenter="this.style.background=\'var(--g50)\'" onmouseleave="this.style.background=\'\'">'
+    +'<div><div style="font-weight:700;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px" title="'+c.name+'">'+c.name+'</div>'
+    +'<div style="font-size:9px;color:var(--g400);margin-top:1px;font-family:\'DM Mono\',monospace">'+vName(v)+'</div>'
+    +'</div>'
+    +'<div><span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:'+st.bg+';color:'+st.color+'">'+st.label+'</span></div>'
+    +'<div><span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:'+ct2.bg+';color:'+ct2.color+'">'+ct2.label+'</span></div>'
+    +'<div style="font-size:11px;font-weight:700;color:'+daysColor+';text-align:center">'+daysLabel+'</div>'
+    +'<div style="font-size:11px;font-weight:700;font-family:\'DM Mono\',monospace;color:var(--gov)">'+fmtEur(c.value)+'</div>'
+    +'<div>'+warningHTML+'</div>'
+    +'<div style="display:flex;justify-content:flex-end">'+actionBtn+'</div>'
+    +'</div>'
 }
 
 function renderCtHeaders(){
@@ -3290,11 +3449,21 @@ function renderContracts(){
   injectRbacBanner("contracts");
   var utb = document.getElementById("upload-toggle-btn")
   if(utb) utb.style.display = isReadOnly() ? "none" : ""
-  // Update badge
   var badge = document.getElementById("contracts-count")
   if(badge) badge.textContent = allContracts().length
-  renderCtHeaders()
-  renderContractTable()
+  renderCtModeBar()
+  var triageMount = document.getElementById("ct-triage-mount")
+  var tableView   = document.getElementById("ct-table-view")
+  if(ctViewMode === "triage"){
+    if(triageMount) triageMount.style.display = ""
+    if(tableView)   tableView.style.display   = "none"
+    renderCtTriage()
+  } else {
+    if(triageMount) triageMount.style.display = "none"
+    if(tableView)   tableView.style.display   = ""
+    renderCtHeaders()
+    renderContractTable()
+  }
 }
 
 // Deep-link: open contracts view filtered to a specific vendor
@@ -6267,8 +6436,228 @@ function _aKpi(val, label, color, bg){
 }
 /* ──────────────── MANAGER ──────────────── */
 function renderManager(){
-  // view-manager removed — combined dashboard lives in view-dashboard
-  showView('dashboard')
+  var mount = document.getElementById("mgr-dash-mount")
+  if(!mount) return
+
+  // ── Data ─────────────────────────────────────────
+  var scores = VENDORS.map(function(v){return calcScore(v.h)})
+  var avgVhs  = Math.round(scores.reduce(function(a,b){return a+b},0)/Math.max(1,scores.length))
+  var critVendors = VENDORS.filter(function(v){return calcScore(v.h)<50}).sort(function(a,b){return calcScore(a.h)-calcScore(b.h)})
+  var amberVendors = VENDORS.filter(function(v){var s=calcScore(v.h);return s>=50&&s<70}).sort(function(a,b){return calcScore(a.h)-calcScore(b.h)})
+  var openTasksList = TASKS.filter(function(t){return t.status==="open"})
+  var overdueTasksList = TASKS.filter(function(t){return t.status==="open"&&t.due&&daysLeft(t.due)<0})
+  var openRisks = RISKS.filter(function(r){return r.status==="open"&&r.level==="high"})
+  var totalVal = VENDORS.reduce(function(s,v){return s+v.contracts.reduce(function(a,c){return a+c.value},0)},0)
+
+  // MGR sign-offs needed
+  var mgrSignoffsNeeded = RENEWAL_DATA.filter(function(rd){
+    var gs = typeof renewalGateStatus==="function" ? renewalGateStatus(rd) : {missing:[],blocking:[]}
+    return gs.blocking.indexOf("mgr")>=0 || gs.missing.indexOf("mgr")>=0
+  })
+
+  // Team
+  var byOwner = {}
+  VENDORS.forEach(function(v){var n=stripSuffix(v.internal_owner);if(!n)return;(byOwner[n]=byOwner[n]||[]).push(v)})
+  var team = Object.entries(byOwner).sort(function(a,b){return a[0].localeCompare(b[0])}).map(function(e){
+    var tm={name:e[0],vendors:e[1]}
+    var sc=tm.vendors.map(function(v){return calcScore(v.h)})
+    tm.avgVhs=Math.round(sc.reduce(function(a,b){return a+b},0)/Math.max(1,sc.length))
+    tm.openTasks=TASKS.filter(function(t){return t.assignee===tm.name&&t.status==="open"}).length
+    tm.overdueTasks=TASKS.filter(function(t){return t.assignee===tm.name&&t.status==="open"&&t.due&&daysLeft(t.due)<0}).length
+    tm.critVendors=tm.vendors.filter(function(v){return calcScore(v.h)<50}).length
+    return tm
+  })
+
+  // ── KPI row ────────────────────────────────────────
+  function kpiCard(label, val, sub, col){
+    return '<div style="background:#fff;border:1px solid var(--g150);border-radius:var(--r-md);padding:12px 16px;flex:1;min-width:0">'
+      +'<div style="font-size:10px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">'+label+'</div>'
+      +'<div style="font-size:26px;font-weight:700;color:'+(col||"var(--g800)")+';line-height:1">'+val+'</div>'
+      +'<div style="font-size:10px;color:var(--g400);margin-top:3px">'+sub+'</div>'
+    +'</div>'
+  }
+
+  var html = '<div style="max-width:1100px">'
+
+  // Page header
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">'
+    +'<div><div style="font-size:20px;font-weight:700;color:var(--g800)">Manager Dashboard</div>'
+    +'<div style="font-size:12px;color:var(--g400);margin-top:2px">Portfolio overview · team workload · pending approvals</div></div>'
+    +'<button onclick="showView(\'dashboard\')" style="font-size:11px;padding:5px 12px;border-radius:var(--r-sm);border:1px solid var(--g200);background:#fff;color:var(--g600);cursor:pointer">Full dashboard →</button>'
+  +'</div>'
+
+  // KPI strip
+  html += '<div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">'
+    + kpiCard("Avg. VHS", avgVhs, "All vendors", avgVhs>=70?"#1a9e5c":avgVhs>=50?"#d97706":"#c0392b")
+    + kpiCard("Critical vendors", critVendors.length, "VHS < 50", critVendors.length>0?"#c0392b":"#1a9e5c")
+    + kpiCard("Overdue tasks", overdueTasksList.length, "Across team", overdueTasksList.length>0?"#c0392b":"#1a9e5c")
+    + kpiCard("High risks", openRisks.length, "Open & unresolved", openRisks.length>0?"#c0392b":"#1a9e5c")
+    + kpiCard("Portfolio", fmtEur(totalVal), "Total contract value", "var(--gov)")
+  +'</div>'
+
+  // ── Two-column layout ─────────────────────────────
+  html += '<div style="display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start">'
+
+  // ── LEFT ─────────────────────────────────────────
+  html += '<div style="display:flex;flex-direction:column;gap:14px">'
+
+  // My approvals needed
+  if(mgrSignoffsNeeded.length){
+    html += '<div style="background:#FAEEDA;border:1px solid #FAC775;border-radius:var(--r-md);padding:13px 16px">'
+      +'<div style="font-size:12px;font-weight:700;color:#633806;margin-bottom:10px">⚡ Your sign-off required ('+mgrSignoffsNeeded.length+')</div>'
+      +'<div style="display:flex;flex-direction:column;gap:6px">'
+      +mgrSignoffsNeeded.map(function(rd){
+        var v=VENDORS.find(function(x){return x.id===rd.vendorId})
+        var days=daysLeft(rd.renewalDate||rd.endDate)
+        var stage=(rd.stage||"t9").toUpperCase()
+        return '<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.6);border-radius:var(--r-sm);padding:8px 10px;cursor:pointer" onclick="showView(\'renewal\')">'
+          +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:12px;font-weight:600;color:var(--g800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(v?vName(v):rd.vendorId)+'</div>'
+          +'<div style="font-size:10px;color:#854F0B">Gate '+stage+' · '+(days>0?days+'d left':'Expires soon')+'</div>'
+          +'</div>'
+          +'<button onclick="event.stopPropagation();openRenewalDecisionLog('+rd.vendorId+',null)" style="font-size:10px;padding:4px 10px;border-radius:var(--r-sm);border:none;background:#854F0B;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap">Sign off →</button>'
+        +'</div>'
+      }).join("")
+      +'</div></div>'
+  }
+
+  // Team overview table
+  html += '<div style="background:#fff;border:1px solid var(--g150);border-radius:var(--r-md);overflow:hidden">'
+    +'<div style="padding:12px 16px;border-bottom:1px solid var(--g150);display:flex;align-items:center;justify-content:space-between">'
+    +'<div style="font-size:13px;font-weight:700;color:var(--g800)">Team Overview</div>'
+    +'<span style="font-size:10px;color:var(--g400)">'+team.length+' members</span>'
+    +'</div>'
+    +'<table style="width:100%;border-collapse:collapse">'
+    +'<thead><tr style="background:var(--g50)">'
+    +'<th style="padding:7px 14px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--g400);text-align:left">Member</th>'
+    +'<th style="padding:7px 8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--g400);text-align:center">Vendors</th>'
+    +'<th style="padding:7px 8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--g400);text-align:center">Avg VHS</th>'
+    +'<th style="padding:7px 8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--g400);text-align:center">Open tasks</th>'
+    +'<th style="padding:7px 8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--g400);text-align:center">Overdue</th>'
+    +'<th style="padding:7px 14px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--g400);text-align:left">Status</th>'
+    +'</tr></thead><tbody>'
+    +team.map(function(tm){
+      var vhsCol=tm.avgVhs>=70?"#1a9e5c":tm.avgVhs>=50?"#d97706":"#c0392b"
+      var taskCol=tm.overdueTasks>0?"#c0392b":tm.openTasks>=5?"#d97706":"var(--g600)"
+      var statusLabel=tm.critVendors>0?"Action required":tm.overdueTasks>0?"Overdue tasks":tm.openTasks>=5?"High load":"On track"
+      var statusCol=tm.critVendors>0?"#c0392b":tm.overdueTasks>0?"#c0392b":tm.openTasks>=5?"#d97706":"#1a9e5c"
+      var col=avatarColor(tm.name)
+      return '<tr style="border-top:1px solid var(--g100)">'
+        +'<td style="padding:9px 14px"><div style="display:flex;align-items:center;gap:8px">'
+        +'<div style="width:26px;height:26px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;flex-shrink:0">'+initials(tm.name)+'</div>'
+        +'<div style="font-size:11px;font-weight:600;color:var(--g800)">'+tm.name+'</div>'
+        +'</div></td>'
+        +'<td style="padding:9px 8px;text-align:center;font-size:11px;color:var(--g600)">'+tm.vendors.length+'</td>'
+        +'<td style="padding:9px 8px;text-align:center"><span style="font-size:12px;font-weight:700;color:'+vhsCol+'">'+tm.avgVhs+'</span></td>'
+        +'<td style="padding:9px 8px;text-align:center;font-size:11px;font-weight:600;color:'+taskCol+'">'+tm.openTasks+'</td>'
+        +'<td style="padding:9px 8px;text-align:center"><span style="font-size:11px;font-weight:700;color:'+(tm.overdueTasks>0?"#c0392b":"var(--g400)")+'">'+tm.overdueTasks+'</span></td>'
+        +'<td style="padding:9px 14px"><span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;background:'+statusCol+'18;color:'+statusCol+'">'+statusLabel+'</span></td>'
+        +'</tr>'
+    }).join("")
+    +'</tbody></table></div>'
+
+  // Critical vendors list
+  var urgentVendors = critVendors.concat(amberVendors).slice(0,8)
+  if(urgentVendors.length){
+    html += '<div style="background:#fff;border:1px solid var(--g150);border-radius:var(--r-md);overflow:hidden">'
+      +'<div style="padding:12px 16px;border-bottom:1px solid var(--g150);display:flex;align-items:center;justify-content:space-between">'
+      +'<div style="font-size:13px;font-weight:700;color:var(--g800)">Vendors needing attention</div>'
+      +'<button onclick="showView(\'vendors\')" style="font-size:10px;color:var(--gov);background:var(--gov-l);border:none;border-radius:5px;padding:3px 8px;cursor:pointer;font-weight:600">All vendors →</button>'
+      +'</div>'
+      +'<div style="padding:10px 14px;display:flex;flex-direction:column;gap:6px">'
+      +urgentVendors.map(function(v){
+        var score=calcScore(v.h),r=rag(score)
+        var col=RC[r]||"var(--g400)"
+        var openT=TASKS.filter(function(t){return t.vendorId===v.id&&t.status==="open"}).length
+        var km=KM[v.kraljic_category]||{label:v.kraljic_category,color:"#888",bg:"#f5f5f5"}
+        return '<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:var(--r-sm);border:1px solid var(--g100);cursor:pointer;background:'+col+'06" onclick="openDrawer('+v.id+')">'
+          +'<div style="width:28px;text-align:center;font-size:14px;font-weight:700;color:'+col+';flex-shrink:0">'+Math.round(score)+'</div>'
+          +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:11px;font-weight:600;color:var(--g800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+vName(v)+'</div>'
+          +'<div style="font-size:9px;color:var(--g400)">'+km.label+(openT>0?' · '+openT+' open task'+(openT>1?'s':''):'')+'</div>'
+          +'</div>'
+          +'<div style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;background:'+col+'18;color:'+col+';flex-shrink:0">'+r.toUpperCase()+'</div>'
+        +'</div>'
+      }).join("")
+      +'</div></div>'
+  }
+
+  html += '</div>' // end left column
+
+  // ── RIGHT ─────────────────────────────────────────
+  html += '<div style="display:flex;flex-direction:column;gap:12px">'
+
+  // Team workload bars
+  html += '<div style="background:#fff;border:1px solid var(--g150);border-radius:var(--r-md);padding:13px 14px">'
+    +'<div style="font-size:12px;font-weight:700;color:var(--g800);margin-bottom:12px">Team workload</div>'
+    +team.map(function(tm){
+      var pct=Math.min((tm.openTasks/8)*100,100)
+      var col=tm.overdueTasks>0?"#c0392b":tm.openTasks>=5?"#d97706":"#1a9e5c"
+      var av=avatarColor(tm.name)
+      return '<div style="margin-bottom:10px">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
+        +'<div style="display:flex;align-items:center;gap:6px">'
+        +'<div style="width:16px;height:16px;border-radius:50%;background:'+av+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:700">'+initials(tm.name)+'</div>'
+        +'<span style="font-size:11px;font-weight:600;color:var(--g700)">'+tm.name+'</span>'
+        +'</div>'
+        +'<span style="font-size:11px;font-weight:700;color:'+col+'">'+tm.openTasks+'</span>'
+        +'</div>'
+        +'<div style="height:5px;background:var(--g100);border-radius:3px;overflow:hidden">'
+        +'<div style="height:100%;border-radius:3px;background:'+col+';width:'+Math.round(pct)+'%;transition:width .5s"></div>'
+        +'</div>'
+      +'</div>'
+    }).join("")
+  +'</div>'
+
+  // Open high risks
+  if(openRisks.length){
+    html += '<div style="background:#fff;border:1px solid var(--g150);border-radius:var(--r-md);padding:13px 14px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--g800)">High risks</div>'
+      +'<button onclick="showView(\'risklog\')" style="font-size:10px;color:var(--gov);background:var(--gov-l);border:none;border-radius:5px;padding:3px 8px;cursor:pointer;font-weight:600">All →</button>'
+      +'</div>'
+      +openRisks.slice(0,5).map(function(r){
+        return '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--g100);font-size:10px">'
+          +'<div style="width:7px;height:7px;border-radius:50%;background:#c0392b;flex-shrink:0;margin-top:3px"></div>'
+          +'<div><div style="font-weight:600;color:var(--g800)">'+r.vendor+'</div>'
+          +'<div style="color:var(--g500)">'+r.signal+'</div></div>'
+        +'</div>'
+      }).join("")
+    +'</div>'
+  }
+
+  // Upcoming renewals
+  var upcoming = VENDORS.flatMap(function(v){
+    return v.contracts.filter(function(c){var d=daysLeft(c.end);return d>0&&d<=270}).map(function(c){
+      return {name:c.name,vendor:vName(v),days:daysLeft(c.end),val:c.value}
+    })
+  }).sort(function(a,b){return a.days-b.days}).slice(0,6)
+  if(upcoming.length){
+    html += '<div style="background:#fff;border:1px solid var(--g150);border-radius:var(--r-md);padding:13px 14px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--g800)">Upcoming renewals</div>'
+      +'<button onclick="showView(\'renewal\')" style="font-size:10px;color:var(--gov);background:var(--gov-l);border:none;border-radius:5px;padding:3px 8px;cursor:pointer;font-weight:600">All →</button>'
+      +'</div>'
+      +upcoming.map(function(c){
+        var sc=c.days<=90?"#c0392b":c.days<=180?"#d97706":"#077a8a"
+        var sl=c.days<=90?"T-3":c.days<=180?"T-6":"T-9"
+        return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--g100);font-size:10px">'
+          +'<div style="width:6px;height:6px;border-radius:50%;background:'+sc+';flex-shrink:0"></div>'
+          +'<div style="flex:1;min-width:0">'
+          +'<div style="font-weight:600;color:var(--g800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+c.vendor+'</div>'
+          +'<div style="color:var(--g400)">'+c.days+'d · '+fmtEur(c.val)+'</div>'
+          +'</div>'
+          +'<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;background:'+sc+'18;color:'+sc+';flex-shrink:0">'+sl+'</span>'
+        +'</div>'
+      }).join("")
+    +'</div>'
+  }
+
+  html += '</div>' // end right
+  html += '</div>' // end grid
+  html += '</div>'
+
+  mount.innerHTML = html
 }
 
 /* ──────────────── TOAST ──────────────── */
@@ -6432,7 +6821,7 @@ function renderAdmin(){
   + '<button onclick="exportDataJSON()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);border-radius:7px;padding:6px 11px;font-size:11px;font-weight:600;cursor:pointer" title="Export alle data als JSON backup">⬇ Export</button>'
   + '<button onclick="importDataJSON()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);border-radius:7px;padding:6px 11px;font-size:11px;font-weight:600;cursor:pointer" title="Import data from JSON backup">⬆ Import</button>'
   + '<button onclick="openChangePassword()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);border-radius:7px;padding:6px 13px;font-size:11px;font-weight:600;cursor:pointer">🔑 Change password</button>'
-  + '<button onclick="adminAuthenticated=false;pbCtxNav(event)" data-v="dashboard\;toast(\'Admin session ended.\')" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);border-radius:7px;padding:6px 13px;font-size:11px;font-weight:600;cursor:pointer">Sign out</button>'
+  + '<button onclick="adminAuthenticated=false;showView(\'dashboard\');toast(\'Admin session ended.\')" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);border-radius:7px;padding:6px 13px;font-size:11px;font-weight:600;cursor:pointer">Sign out</button>'
   + '</div>'
   + '</div>'
 
