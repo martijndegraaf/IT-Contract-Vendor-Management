@@ -10941,6 +10941,37 @@ function autoSave(){
   _syncToCloud()
 }
 
+// ── Real-time sync via polling ───────────────────────────────────────────
+var _lastOwnSave = 0      // timestamp of our last save — don't reload our own changes
+var _cloudPollTimer = null
+
+function _startCloudPolling(){
+  clearInterval(_cloudPollTimer)
+  _cloudPollTimer = setInterval(function(){
+    // Skip if we saved within the last 10s (avoid reloading our own change)
+    if(Date.now() - _lastOwnSave < 10000) return
+    fetch(BACKEND_URL + '/data')
+      .then(function(r){ return r.json() })
+      .then(function(res){
+        var cloudData = res.data
+        if(!cloudData || !cloudData.version) return
+        var local = JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')
+        if(!cloudData.savedAt || !local.savedAt) return
+        if(cloudData.savedAt <= local.savedAt) return  // nothing new
+
+        // Cloud is newer — apply and re-render
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudData))
+        loadFromStorage()
+        renderCurrentView()
+        updateDashboardHeader()
+        renderAlerts()
+        toast('🔄 Data bijgewerkt door een andere gebruiker')
+        console.log('[PVSP] Real-time update from cloud')
+      })
+      .catch(function(){})
+  }, 30000) // every 30 seconds
+}
+
 // Debounced cloud sync — max 1 request per 3 seconds
 var _cloudSyncTimer = null
 function _syncToCloud(){
@@ -10948,6 +10979,7 @@ function _syncToCloud(){
   _cloudSyncTimer = setTimeout(function(){
     var payload = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
     if(!payload || !payload.version) return
+    _lastOwnSave = Date.now()
     fetch(BACKEND_URL + '/data', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -12832,6 +12864,8 @@ function _initRest(savedAt){
   _initRbacDelegation()
   // Load any additional vendors from backend
   fetchBackendVendors()
+  // Start real-time polling for changes from other users
+  _startCloudPolling()
 }
 init()
 
