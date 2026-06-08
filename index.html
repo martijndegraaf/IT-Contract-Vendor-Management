@@ -6344,6 +6344,7 @@ function renderUsersTab(){
     +'<td style="color:var(--g400)">'+u.created+'</td>'
     +'<td><div style="display:flex;gap:5px">'
     +'<button class="user-action-btn" onclick="openUserForm('+u.id+')">Edit</button>'
+    +'<button class="user-action-btn" onclick="sendInvite(\''+u.email+'\',\''+u.name.replace(/'/g,"\\'")+ '\',\''+u.role+'\')" style="background:#eef4ff;color:#154273;border-color:#c2d4f5" title="Stuur uitnodigingsmail">✉️ Invite</button>'
     +(isMgr?'<button class="user-action-btn" onclick="openTeamPanel('+u.id+')" style="background:#eaf7f1;color:#1a7a4a;border-color:#a8e6c8">Team</button>':'')
     +'<button class="user-action-btn" onclick="toggleUserStatus('+u.id+')" style="min-width:64px">'+(u.status==="active"?"Deactivate":"Activate")+'</button>'
     +'<button class="user-action-btn danger" onclick="deleteUser('+u.id+')">Delete</button>'
@@ -8126,7 +8127,8 @@ function openLoginModal(){
   + '<input type="password" class="form-input" id="login-pw" placeholder="••••••••" onkeydown="if(event.key===\'Enter\')doLogin()"/></div>'
   + '<div style="display:flex;align-items:center;gap:8px;margin-top:12px">' + '<input type="checkbox" id="login-remember" style="width:14px;height:14px;cursor:pointer"/>' + '<label for="login-remember" style="font-size:11px;color:var(--g500);cursor:pointer">Remember me on this device</label>' + '</div>' + '<div id="login-error" style="color:#c0392b;font-size:11px;margin-top:6px;display:none"></div>'
   + '<button onclick="doLogin()" style="width:100%;margin-top:16px;padding:11px;border-radius:9px;border:none;background:#154273;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Sign in</button>'
-  + '<div style="margin-top:14px;text-align:center;font-size:10px;color:#9aa3b0">Demo: use email from user database (@pvsp.nl) + password "demo123"</div>'
+  + '<div style="margin-top:10px;text-align:right"><a href="#" onclick="openForgotPassword();return false" style="font-size:11px;color:#154273;text-decoration:none">Wachtwoord vergeten?</a></div>'
+  + '<div style="margin-top:10px;text-align:center;font-size:10px;color:#9aa3b0">Demo: use email from user database (@pvsp.nl) + password "demo123"</div>'
   + '</div></div>'
   document.body.appendChild(overlay)
   // Pre-fill remembered credentials
@@ -8192,6 +8194,19 @@ function doLogin(){
       if(err){ err.textContent = 'Login failed. Please try again.'; err.style.display='block' }
       if(btn){ btn.disabled = false; btn.textContent = 'Sign in' }
     })
+}
+
+function openForgotPassword(){
+  var email = (document.getElementById("login-email")||{value:""}).value.trim()
+  email = email || prompt("Vul je e-mailadres in:")
+  if(!email) return
+  fetch(_SUPA_URL + '/auth/v1/recover', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': _SUPA_KEY },
+    body: JSON.stringify({ email: email })
+  }).then(function(){
+    alert('✉️ Als dit e-mailadres bekend is, ontvang je een link om je wachtwoord opnieuw in te stellen.')
+  })
 }
 
 function doLogout(){
@@ -8461,14 +8476,14 @@ function saveUser(){
     if(u){ u.name=name;u.email=email;u.role=role;u.dept=dept;u.status=status;u.phone=phone }
     auditLog("UPDATE","User bijgewerkt: "+name, editingUserId)
     toast("✓ User bijgewerkt: "+name)
+    autoSave(); closeUserForm(); renderAdmin()
   } else {
-    USERS.push({id:"USR-"+Date.now(),name:name,email:email,role:role,dept:dept,status:status,phone:phone})
+    USERS.push({id:"USR-"+Date.now(),name:name,email:email,role:role,dept:dept,status:"pending",phone:phone})
     auditLog("CREATE","User aangemaakt: "+name, null)
-    toast("✓ User aangemaakt: "+name)
+    autoSave(); closeUserForm(); renderAdmin()
+    // Send invite email via backend
+    sendInvite(email, name, role)
   }
-  autoSave()
-  closeUserForm()
-  renderAdmin()
 }
 
 /* ── 4. CONFIGURABLE ALERTS (use ALERT_THRESHOLDS) ─ */
@@ -12602,6 +12617,21 @@ function pbCtxOpenCt(e){
 /* ──────────────────────────────────────────────── */
 /* ── BACKEND API ────────────────────────────────── */
 var BACKEND_URL = 'https://pvsp-backend-production.up.railway.app'
+
+// Send invite email via backend
+function sendInvite(email, name, role){
+  fetch(BACKEND_URL + '/invite-user', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email, name: name, role: role })
+  })
+  .then(function(r){ return r.json() })
+  .then(function(data){
+    if(data.error) toast('⚠️ Invite mislukt: ' + data.error)
+    else toast('✉️ Uitnodigingsmail verstuurd naar ' + email)
+  })
+  .catch(function(){ toast('⚠️ Kon geen uitnodiging versturen') })
+}
 
 // Supabase Auth — direct REST API (no SDK, avoids CSP eval issues)
 var _SUPA_URL  = 'https://pvthylxmrdoxvbniwolt.supabase.co'
