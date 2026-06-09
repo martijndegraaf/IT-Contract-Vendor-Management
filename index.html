@@ -1723,35 +1723,80 @@ let MEETINGS = [
 ]
 
 let RISKS = [
-  {id:1,vendorId:3,vendor:"Cegeka Nederland",signal:"Rising MTTR (48h→72h)",source:"Performance KPI",clause:"SLA Art. 7.2",level:"high",date:"2025-04-28",status:"open",owner:"Annet de Vries"},
-  {id:2,vendorId:3,vendor:"Cegeka Nederland",signal:"Contract date expired",source:"Contract Register",clause:"End date 31-12-2024",level:"high",date:"2025-01-05",status:"open",owner:"Annet de Vries"},
-  {id:3,vendorId:5,vendor:"PinkRoccade LG",signal:"Notice period T-3 approaching",source:"Renewal Funnel",clause:"Art. 23 Opzegging",level:"high",date:"2025-03-01",status:"open",owner:"Annet de Vries"},
-  {id:4,vendorId:1,vendor:"Atos Nederland B.V.",signal:"Compliance score below 75",source:"Health Monitor",clause:"GIBIT Clause 12",level:"medium",date:"2025-04-15",status:"in_progress",owner:"Annet de Vries"},
-  {id:5,vendorId:5,vendor:"PinkRoccade LG",signal:"Declining trend 3 weeks",source:"Predictive AI",clause:"SLA Art. 5.1",level:"medium",date:"2025-04-20",status:"in_progress",owner:"Annet de Vries"},
-  {id:6,vendorId:2,vendor:"Capgemini Overheid",signal:"Volume bundling opportunity identified",source:"Kraljic AI",clause:"Hefboom strategie",level:"low",date:"2025-04-01",status:"resolved",owner:"Annet de Vries"},
-  {id:7,vendorId:4,vendor:"Sogeti Nederland",signal:"Indexation +3.2% CBS expected",source:"Budget Forecaster AI",clause:"Indexatie Art. 18",level:"low",date:"2025-04-10",status:"resolved",owner:"Annet de Vries"},
+  {"id": 1, "vendorId": 103, "vendor": "Geopunt 103", "signal": "Contract expired — no renewal decision yet", "source": "Contract Register", "clause": "End date clause", "level": "high", "date": "2026-04-23", "status": "open", "owner": "A. de Vries"},
+  {"id": 2, "vendorId": "v33", "vendor": "OneWelcome B.V", "signal": "Notice period T-3 approaching", "source": "Renewal Funnel", "clause": "Art. 23 Opzegging", "level": "high", "date": "2026-03-26", "status": "in_progress", "owner": "A. de Vries"},
+  {"id": 3, "vendorId": 42, "vendor": "Verigio", "signal": "Compliance score below 60", "source": "Health Monitor", "clause": "GIBIT Clause 12", "level": "high", "date": "2026-05-09", "status": "open", "owner": "P. de Boer"},
+  {"id": 4, "vendorId": "v26", "vendor": "Dyanix", "signal": "VWO verlopen — hernieuwen vereist", "source": "Compliance Audit", "clause": "AVG Art. 28", "level": "high", "date": "2026-05-25", "status": "in_progress", "owner": "A. de Vries"},
+  {"id": 5, "vendorId": "v31", "vendor": "PiwikPro", "signal": "Governance niet ingeregeld", "source": "Compliance Audit", "clause": "Governance kader", "level": "medium", "date": "2026-03-20", "status": "in_progress", "owner": "P. de Boer"},
+  {"id": 6, "vendorId": "v25", "vendor": "JCC Software", "signal": "DAP ontbreekt", "source": "Compliance Audit", "clause": "AVG Art. 30", "level": "medium", "date": "2026-05-23", "status": "in_progress", "owner": "A. de Vries"},
+  {"id": 7, "vendorId": "v15", "vendor": "Rocket Software", "signal": "Declining VHS trend — 3 periods", "source": "Predictive Monitor", "clause": "SLA Art. 5.1", "level": "medium", "date": "2026-04-23", "status": "in_progress", "owner": "A. de Vries"},
+  {"id": 8, "vendorId": "v38", "vendor": "Partners 4 IT BV", "signal": "SLA rapportage niet ontvangen Q1", "source": "SLA Monitor", "clause": "SLA Bijlage A", "level": "medium", "date": "2026-03-23", "status": "open", "owner": "A. de Vries"},
+  {"id": 9, "vendorId": 61, "vendor": "Civision", "signal": "Prijsverhoging aangekondigd > 5%", "source": "Contract Review", "clause": "Indexatie clause", "level": "medium", "date": "2026-03-28", "status": "resolved", "owner": "A. de Vries"},
+  {"id": 10, "vendorId": 72, "vendor": "Logiqal", "signal": "Direct Agreement verlopen", "source": "Compliance Audit", "clause": "DA clausule", "level": "medium", "date": "2026-04-09", "status": "in_progress", "owner": "P. de Boer"},
+  {"id": 11, "vendorId": 79, "vendor": "VNG Realisatie", "signal": "Volume bundling opportunity identified", "source": "Kraljic Analysis", "clause": "Hefboom strategie", "level": "low", "date": "2026-04-21", "status": "resolved", "owner": "A. de Vries"},
+  {"id": 12, "vendorId": 102, "vendor": "Verigio 102", "signal": "Indexation +CBS CPI expected", "source": "Budget Forecaster", "clause": "Indexatie Art. 18", "level": "low", "date": "2026-04-14", "status": "in_progress", "owner": "A. de Vries"},
+  {"id": 13, "vendorId": "v19", "vendor": "Brainbay", "signal": "Contract aanwezigheid onbekend", "source": "Dossier Audit", "clause": "Archief kader", "level": "low", "date": "2026-05-07", "status": "open", "owner": "A. de Vries"},
+  {"id": 14, "vendorId": 97, "vendor": "KING", "signal": "Rising MTTR — SLA threshold breached", "source": "Performance KPI", "clause": "SLA Art. 7.2", "level": "high", "date": "2026-05-18", "status": "in_progress", "owner": "P. de Boer"},
+  {"id": 15, "vendorId": 81, "vendor": "Solviteers", "signal": "Contract expired — no renewal decision yet", "source": "Contract Register", "clause": "End date clause", "level": "high", "date": "2026-06-03", "status": "resolved", "owner": "P. de Boer"},
+  {"id": 16, "vendorId": 85, "vendor": "Corsa", "signal": "Notice period T-3 approaching", "source": "Renewal Funnel", "clause": "Art. 23 Opzegging", "level": "high", "date": "2026-05-29", "status": "open", "owner": "A. de Vries"},
+  {"id": 17, "vendorId": 65, "vendor": "Spotzi", "signal": "Compliance score below 60", "source": "Health Monitor", "clause": "GIBIT Clause 12", "level": "high", "date": "2026-04-20", "status": "in_progress", "owner": "A. de Vries"},
+  {"id": 18, "vendorId": "v1", "vendor": "DE REE archiefsystemen B.V.", "signal": "VWO verlopen — hernieuwen vereist", "source": "Compliance Audit", "clause": "AVG Art. 28", "level": "high", "date": "2026-05-20", "status": "open", "owner": "P. de Boer"},
+  {"id": 19, "vendorId": "v36", "vendor": "Andes B.V.", "signal": "Governance niet ingeregeld", "source": "Compliance Audit", "clause": "Governance kader", "level": "medium", "date": "2026-05-28", "status": "in_progress", "owner": "P. de Boer"},
+  {"id": 20, "vendorId": "v4", "vendor": "SLTN InterAccess", "signal": "DAP ontbreekt", "source": "Compliance Audit", "clause": "AVG Art. 30", "level": "medium", "date": "2026-05-17", "status": "open", "owner": "A. de Vries"},
+  {"id": 21, "vendorId": 64, "vendor": "Squit", "signal": "Declining VHS trend — 3 periods", "source": "Predictive Monitor", "clause": "SLA Art. 5.1", "level": "medium", "date": "2026-06-02", "status": "in_progress", "owner": "A. de Vries"},
+  {"id": 22, "vendorId": "v23", "vendor": "Olifantenpaadje", "signal": "SLA rapportage niet ontvangen Q1", "source": "SLA Monitor", "clause": "SLA Bijlage A", "level": "medium", "date": "2026-04-12", "status": "open", "owner": "P. de Boer"},
+  {"id": 23, "vendorId": 101, "vendor": "Lias", "signal": "Prijsverhoging aangekondigd > 5%", "source": "Contract Review", "clause": "Indexatie clause", "level": "medium", "date": "2026-04-04", "status": "open", "owner": "A. de Vries"},
+  {"id": 24, "vendorId": 90, "vendor": "Cyclomedia", "signal": "Direct Agreement verlopen", "source": "Compliance Audit", "clause": "DA clausule", "level": "medium", "date": "2026-06-03", "status": "open", "owner": "A. de Vries"},
+  {"id": 25, "vendorId": 50, "vendor": "SDB", "signal": "Volume bundling opportunity identified", "source": "Kraljic Analysis", "clause": "Hefboom strategie", "level": "low", "date": "2026-05-21", "status": "resolved", "owner": "P. de Boer"},
 ]
 
 let TASKS = [
-  {id:1,title:"Schedule compliance audit before 1 June",category:"Compliance",vendorId:1,vendor:"Atos",assignee:"A. Smit",priority:"hoog",status:"open",source:"playbook",due:"2025-06-01"},
-  {id:2,title:"Complete onboarding checklist – Sogeti",category:"Contract",vendorId:4,vendor:"Sogeti",assignee:"A. Smit",priority:"medium",status:"open",source:"manual",due:"2025-07-01"},
-  {id:3,title:"Validate SLA quarterly report – Atos Q1",category:"Contract",vendorId:1,vendor:"Atos",assignee:"A. Smit",priority:"laag",status:"in_behandeling",source:"manual",due:"2025-05-20"},
-  {id:4,title:"Schedule escalation meeting within 5 business days – Cegeka",category:"VHS Critical",vendorId:3,vendor:"Cegeka",assignee:"C. Bakker",priority:"hoog",status:"open",source:"playbook",due:"2025-05-16"},
-  {id:5,title:"Request NIS2 compliance plan from Cegeka",category:"Compliance",vendorId:3,vendor:"Cegeka",assignee:"C. Bakker",priority:"hoog",status:"open",source:"compliance_record",due:"2025-05-18"},
-  {id:6,title:"Decide contract renewal ERP DUO (expired)",category:"Renewal",vendorId:3,vendor:"Cegeka",assignee:"C. Bakker",priority:"hoog",status:"open",source:"renewal_funnel",due:"2025-05-14"},
-  {id:7,title:"Repeat MTTR measurement after capacity expansion",category:"Governance",vendorId:3,vendor:"Cegeka",assignee:"C. Bakker",priority:"medium",status:"open",source:"manual",due:"2025-05-21"},
-  {id:8,title:"Activate contingency plan – VHS < 40",category:"VHS Critical",vendorId:3,vendor:"Cegeka",assignee:"C. Bakker",priority:"hoog",status:"open",source:"playbook",due:"2025-05-13"},
-  {id:9,title:"Formalise Capgemini renewal decision",category:"Renewal",vendorId:2,vendor:"Capgemini",assignee:"B. de Jong",priority:"hoog",status:"open",source:"renewal_funnel",due:"2025-06-01"},
-  {id:10,title:"Monitor PinkRoccade notice period (T-3)",category:"Renewal",vendorId:5,vendor:"PinkRoccade",assignee:"B. de Jong",priority:"hoog",status:"open",source:"renewal_funnel",due:"2025-05-18"},
-  {id:11,title:"Formalise Deloitte innovation agenda in contract",category:"Contract",vendorId:6,vendor:"Deloitte",assignee:"B. de Jong",priority:"medium",status:"open",source:"manual",due:"2025-06-25"},
-  {id:12,title:"Send QBR Q1 2025 agenda – Capgemini",category:"Governance",vendorId:2,vendor:"Capgemini",assignee:"B. de Jong",priority:"laag",status:"done",source:"manual",due:"2025-04-10"},
-  // SLM — Lisa of den Berg tasks
-  {id:13,title:"Investigate Cegeka MTTR breach — P1 SLA violation",category:"SLA",vendorId:3,vendor:"Cegeka",assignee:"L. of den Berg",priority:"hoog",status:"open",source:"sla_monitor",due:"2025-05-13"},
-  {id:14,title:"Validate Atos uptime report Q1 2025",category:"SLA",vendorId:1,vendor:"Atos",assignee:"L. of den Berg",priority:"medium",status:"open",source:"sla_monitor",due:"2025-05-20"},
-  {id:15,title:"Issue formal SLA breach notice — Cegeka",category:"SLA",vendorId:3,vendor:"Cegeka",assignee:"L. of den Berg",priority:"hoog",status:"open",source:"playbook",due:"2025-05-15"},
-  {id:16,title:"Schedule SLA review meeting — PinkRoccade",category:"SLA",vendorId:5,vendor:"PinkRoccade",assignee:"L. of den Berg",priority:"medium",status:"in_behandeling",source:"sla_monitor",due:"2025-05-22"},
-  {id:17,title:"Update KPI scorecard — Deloitte Data Analytics",category:"SLA",vendorId:6,vendor:"Deloitte",assignee:"L. of den Berg",priority:"laag",status:"in_behandeling",source:"manual",due:"2025-05-30"},
-  {id:18,title:"Confirm Capgemini API Gateway uptime SLA ≥99.9%",category:"SLA",vendorId:2,vendor:"Capgemini",assignee:"L. of den Berg",priority:"medium",status:"open",source:"sla_monitor",due:"2025-05-25"},
+  {"id": 1, "title": "DAP opstellen – Civision", "category": "Compliance", "vendorId": 61, "vendor": "Civision", "assignee": "A. de Vries", "priority": "medium", "status": "open", "source": "playbook", "due": "2026-06-05"},
+  {"id": 2, "title": "Governance overleg plannen – Blue Billywig Marketing Solutions B.V.", "category": "Governance", "vendorId": "v14", "vendor": "Blue Billywig Marketing Solutions B.V.", "assignee": "A. de Vries", "priority": "medium", "status": "in_behandeling", "source": "compliance_record", "due": "2026-06-14"},
+  {"id": 3, "title": "Escalatiegesprek inplannen – ANG", "category": "VHS Critical", "vendorId": "v18", "vendor": "ANG", "assignee": "P. de Boer", "priority": "hoog", "status": "open", "source": "compliance_record", "due": "2026-07-08"},
+  {"id": 4, "title": "Escalatiegesprek inplannen – PiwikPro", "category": "VHS Critical", "vendorId": "v31", "vendor": "PiwikPro", "assignee": "A. de Vries", "priority": "hoog", "status": "done", "source": "compliance_record", "due": "2026-06-20"},
+  {"id": 5, "title": "DAP opstellen – Worth Internet Systems", "category": "Compliance", "vendorId": "v34", "vendor": "Worth Internet Systems", "assignee": "P. de Boer", "priority": "medium", "status": "open", "source": "playbook", "due": "2026-07-09"},
+  {"id": 6, "title": "Opzegtermijn bewaken – TheyDo B.V.", "category": "Renewal", "vendorId": "v27", "vendor": "TheyDo B.V.", "assignee": "P. de Boer", "priority": "hoog", "status": "open", "source": "compliance_record", "due": "2026-06-20"},
+  {"id": 7, "title": "Escalatiegesprek inplannen – TheyDo B.V.", "category": "VHS Critical", "vendorId": "v27", "vendor": "TheyDo B.V.", "assignee": "P. de Boer", "priority": "hoog", "status": "done", "source": "sla_monitor", "due": "2026-06-10"},
+  {"id": 8, "title": "KPI scorecard bijwerken – GovUnited", "category": "SLA", "vendorId": 99, "vendor": "GovUnited", "assignee": "L. van den Berg", "priority": "laag", "status": "open", "source": "manual", "due": "2026-06-06"},
+  {"id": 9, "title": "Governance overleg plannen – OCLC", "category": "Governance", "vendorId": "v12", "vendor": "OCLC", "assignee": "A. de Vries", "priority": "medium", "status": "open", "source": "playbook", "due": "2026-07-15"},
+  {"id": 10, "title": "KPI scorecard bijwerken – OCLC", "category": "SLA", "vendorId": "v12", "vendor": "OCLC", "assignee": "L. van den Berg", "priority": "laag", "status": "in_behandeling", "source": "compliance_record", "due": "2026-06-15"},
+  {"id": 11, "title": "Product demo aanvragen – Dyflexis", "category": "Contract", "vendorId": "v21", "vendor": "Dyflexis", "assignee": "M. Visser", "priority": "laag", "status": "open", "source": "manual", "due": "2026-06-10"},
+  {"id": 12, "title": "Opzegtermijn bewaken – Dyflexis", "category": "Renewal", "vendorId": "v21", "vendor": "Dyflexis", "assignee": "A. de Vries", "priority": "hoog", "status": "open", "source": "manual", "due": "2026-07-01"},
+  {"id": 13, "title": "VWO hernieuwen – 2Rivers", "category": "Compliance", "vendorId": "v22", "vendor": "2Rivers", "assignee": "P. de Boer", "priority": "hoog", "status": "in_behandeling", "source": "manual", "due": "2026-07-24"},
+  {"id": 14, "title": "Prijsonderhandeling starten – SURF B.V.", "category": "Contract", "vendorId": "v20", "vendor": "SURF B.V.", "assignee": "P. de Boer", "priority": "medium", "status": "in_behandeling", "source": "playbook", "due": "2026-06-15"},
+  {"id": 15, "title": "Verlenging maximale einddatum – SLTN InterAccess", "category": "Renewal", "vendorId": "v4", "vendor": "SLTN InterAccess", "assignee": "P. de Boer", "priority": "medium", "status": "open", "source": "manual", "due": "2026-06-15"},
+  {"id": 16, "title": "Kwartaaloverleg inplannen – BPS International BV", "category": "Governance", "vendorId": "v7", "vendor": "BPS International BV", "assignee": "P. de Boer", "priority": "laag", "status": "open", "source": "playbook", "due": "2026-06-28"},
+  {"id": 17, "title": "ISO certificering controleren – BPS International BV", "category": "Compliance", "vendorId": "v7", "vendor": "BPS International BV", "assignee": "P. de Boer", "priority": "medium", "status": "done", "source": "compliance_record", "due": "2026-06-29"},
+  {"id": 18, "title": "Governance overleg plannen – Coosto", "category": "Governance", "vendorId": "v30", "vendor": "Coosto", "assignee": "A. de Vries", "priority": "medium", "status": "in_behandeling", "source": "sla_monitor", "due": "2026-07-15"},
+  {"id": 19, "title": "Direct Agreement afsluiten – Pinkweb D", "category": "Compliance", "vendorId": 86, "vendor": "Pinkweb D", "assignee": "P. de Boer", "priority": "hoog", "status": "open", "source": "sla_monitor", "due": "2026-07-15"},
+  {"id": 20, "title": "KPI scorecard bijwerken – Spotzi", "category": "SLA", "vendorId": 65, "vendor": "Spotzi", "assignee": "L. van den Berg", "priority": "laag", "status": "done", "source": "sla_monitor", "due": "2026-06-22"},
+  {"id": 21, "title": "ISO certificering controleren – Ultimo", "category": "Compliance", "vendorId": 49, "vendor": "Ultimo", "assignee": "P. de Boer", "priority": "medium", "status": "open", "source": "compliance_record", "due": "2026-07-04"},
+  {"id": 22, "title": "Governance overleg plannen – Ultimo", "category": "Governance", "vendorId": 49, "vendor": "Ultimo", "assignee": "P. de Boer", "priority": "medium", "status": "open", "source": "manual", "due": "2026-06-21"},
+  {"id": 23, "title": "Compliance audit inplannen – Afas", "category": "Compliance", "vendorId": 74, "vendor": "Afas", "assignee": "P. de Boer", "priority": "hoog", "status": "open", "source": "compliance_record", "due": "2026-07-07"},
+  {"id": 24, "title": "Benchmark marktanalyse – Zig", "category": "Contract", "vendorId": 77, "vendor": "Zig", "assignee": "S. Kuijpers", "priority": "medium", "status": "done", "source": "manual", "due": "2026-07-30"},
+  {"id": 25, "title": "Verlenging maximale einddatum – Flowable", "category": "Renewal", "vendorId": 54, "vendor": "Flowable", "assignee": "P. de Boer", "priority": "medium", "status": "open", "source": "compliance_record", "due": "2026-06-14"},
+  {"id": 26, "title": "Escalatiegesprek inplannen – Flowable", "category": "VHS Critical", "vendorId": 54, "vendor": "Flowable", "assignee": "P. de Boer", "priority": "hoog", "status": "done", "source": "compliance_record", "due": "2026-07-13"},
+  {"id": 27, "title": "Compliance audit inplannen – Tesorion", "category": "Compliance", "vendorId": 63, "vendor": "Tesorion", "assignee": "P. de Boer", "priority": "hoog", "status": "done", "source": "compliance_record", "due": "2026-07-06"},
+  {"id": 28, "title": "Opzegtermijn bewaken – Tesorion", "category": "Renewal", "vendorId": 63, "vendor": "Tesorion", "assignee": "A. de Vries", "priority": "hoog", "status": "open", "source": "compliance_record", "due": "2026-06-25"},
+  {"id": 29, "title": "KPI scorecard bijwerken – PinkRoccade HC", "category": "SLA", "vendorId": 91, "vendor": "PinkRoccade HC", "assignee": "F. el Idrissi", "priority": "laag", "status": "open", "source": "manual", "due": "2026-07-18"},
+  {"id": 30, "title": "Escalatiegesprek inplannen – PinkRoccade HC", "category": "VHS Critical", "vendorId": 91, "vendor": "PinkRoccade HC", "assignee": "A. de Vries", "priority": "hoog", "status": "open", "source": "playbook", "due": "2026-06-14"},
+  {"id": 31, "title": "Product demo aanvragen – Tribe CRM Efficy", "category": "Contract", "vendorId": "v35", "vendor": "Tribe CRM Efficy", "assignee": "T. Groot", "priority": "laag", "status": "open", "source": "manual", "due": "2026-08-27"},
+  {"id": 32, "title": "SLA rapportage opvragen Q2 – Verseon", "category": "SLA", "vendorId": 88, "vendor": "Verseon", "assignee": "L. van den Berg", "priority": "medium", "status": "open", "source": "manual", "due": "2026-07-04"},
+  {"id": 33, "title": "ISO certificering controleren – Simacan 105", "category": "Compliance", "vendorId": 105, "vendor": "Simacan 105", "assignee": "P. de Boer", "priority": "medium", "status": "open", "source": "manual", "due": "2026-08-04"},
+  {"id": 34, "title": "Benchmark marktanalyse – Berenschot 106", "category": "Contract", "vendorId": 106, "vendor": "Berenschot 106", "assignee": "S. Kuijpers", "priority": "medium", "status": "open", "source": "manual", "due": "2026-07-19"},
+  {"id": 35, "title": "Prijsonderhandeling starten – GIS Spec", "category": "Contract", "vendorId": 80, "vendor": "GIS Spec", "assignee": "P. de Boer", "priority": "medium", "status": "open", "source": "playbook", "due": "2026-08-08"},
+  {"id": 36, "title": "Contractverlenging beslissen – Humanwise", "category": "Renewal", "vendorId": 87, "vendor": "Humanwise", "assignee": "A. de Vries", "priority": "hoog", "status": "in_behandeling", "source": "playbook", "due": "2026-06-15"},
+  {"id": 37, "title": "Kwartaaloverleg inplannen – Partners 4 IT BV", "category": "Governance", "vendorId": "v38", "vendor": "Partners 4 IT BV", "assignee": "P. de Boer", "priority": "laag", "status": "open", "source": "sla_monitor", "due": "2026-06-10"},
+  {"id": 38, "title": "DAP opstellen – Partners 4 IT BV", "category": "Compliance", "vendorId": "v38", "vendor": "Partners 4 IT BV", "assignee": "A. de Vries", "priority": "medium", "status": "open", "source": "compliance_record", "due": "2026-08-04"},
+  {"id": 39, "title": "Governance overleg plannen – Esri", "category": "Governance", "vendorId": 70, "vendor": "Esri", "assignee": "P. de Boer", "priority": "medium", "status": "open", "source": "compliance_record", "due": "2026-07-20"},
+  {"id": 40, "title": "Contractdossier compleet maken – Esri", "category": "Contract", "vendorId": 70, "vendor": "Esri", "assignee": "P. de Boer", "priority": "medium", "status": "open", "source": "playbook", "due": "2026-06-11"},
+  {"id": 41, "title": "Contractverlenging beslissen – Andes B.V.", "category": "Renewal", "vendorId": "v36", "vendor": "Andes B.V.", "assignee": "P. de Boer", "priority": "hoog", "status": "in_behandeling", "source": "sla_monitor", "due": "2026-06-20"},
+  {"id": 42, "title": "Opzegtermijn bewaken – Argaleo", "category": "Renewal", "vendorId": "v37", "vendor": "Argaleo", "assignee": "P. de Boer", "priority": "hoog", "status": "in_behandeling", "source": "playbook", "due": "2026-06-05"},
+  {"id": 43, "title": "Verlenging maximale einddatum – Naris", "category": "Renewal", "vendorId": 59, "vendor": "Naris", "assignee": "A. de Vries", "priority": "medium", "status": "in_behandeling", "source": "manual", "due": "2026-07-01"},
+  {"id": 44, "title": "Kwartaaloverleg inplannen – JCC Software", "category": "Governance", "vendorId": "v25", "vendor": "JCC Software", "assignee": "P. de Boer", "priority": "laag", "status": "open", "source": "compliance_record", "due": "2026-07-05"},
+  {"id": 45, "title": "Direct Agreement afsluiten – JCC Software", "category": "Compliance", "vendorId": "v25", "vendor": "JCC Software", "assignee": "P. de Boer", "priority": "hoog", "status": "open", "source": "manual", "due": "2026-07-15"},
+  {"id": 46, "title": "Opzegtermijn bewaken – Axiell ALM Netherlands B.V.", "category": "Renewal", "vendorId": "v3", "vendor": "Axiell ALM Netherlands B.V.", "assignee": "A. de Vries", "priority": "hoog", "status": "done", "source": "compliance_record", "due": "2026-06-30"},
 ]
 
 /* ──────────────── DOCUMENT TYPES ──────────────── */
@@ -8894,6 +8939,17 @@ function contractFormHTML(ct, preVid){
   +fld("Policy area","cf-beleid","text",ct&&ct.beleidsveld,"e.g. Business operations")
   +'</div>'
   +fld("Funding model","cf-bekos","text",ct&&ct.bekostiging,"e.g. Output-based SLA")
+  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+  +fld("Max. extension date","cf-maxend","date",ct&&ct.max_end)
+  +fld("Drawn / actual spend (€)","cf-drawn","number",ct&&ct.drawn,"e.g. 240000",{min:0})
+  +'</div>'
+  +'<div style="border-top:1px solid var(--g100);padding-top:12px;margin-top:2px">'
+  +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--g400);margin-bottom:8px">Compliance checklist</div>'
+  +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
+  +(function(){var yn='<option value="">–</option><option value="Ja">✓ Ja</option><option value="Nee">✗ Nee</option><option value="Nvt">– N/v.t.</option>';function csel(id,lbl,val){return'<div class="form-group"><label class="form-label">'+lbl+'</label><select class="form-select" id="'+id+'">'+yn.replace('value="'+val+'"','value="'+val+'" selected')+'</select></div>'}return[csel("cf-gov","Governance",ct&&ct.governance_ok||""),csel("cf-vwo","VWO",ct&&ct.vwo||""),csel("cf-sla","SLA aanwezig",ct&&ct.sla||""),csel("cf-dap","DAP aanwezig",ct&&ct.dap||""),csel("cf-cp","Contract aanwezig",ct&&ct.contract_present||"")].join("")})()
+  +'</div>'
+  +fld("Lopende issues / status note","cf-statusnote","text",ct&&ct.status_note,"Wat speelt er?")
+  +'</div>'
   +'<div id="cf-error" style="color:#c0392b;font-size:11px;display:none"></div>'
   +'<div style="display:flex;gap:8px;justify-content:flex-end;padding-top:4px">'
   +'<button onclick="closeFormModal()" style="padding:9px 18px;border-radius:8px;border:1px solid #e4e8ef;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#5c6575">Cancel</button>'
@@ -9233,6 +9289,24 @@ function saveVendorForm(editId){
   if(currentView==="vendors") renderVendorsFull()
 }
 
+function _recomputeVendorHc(contractId, vendorObj){
+  var v = vendorObj || VENDORS.find(function(vx){
+    return vx.contracts.some(function(c){ return c.id===contractId })
+  })
+  if(!v||!v.contracts||!v.contracts.length) return
+  // Average compliance score across all vendor contracts
+  var total=0, count=0
+  v.contracts.forEach(function(c){
+    var s=0
+    if(c.governance_ok==="Ja") s+=35; else if(c.governance_ok==null||c.governance_ok==="") s+=15
+    if(c.vwo==="Ja") s+=25; else if(c.vwo==null||c.vwo==="") s+=10
+    if(c.sla==="Ja") s+=25; else if(c.sla==null||c.sla==="") s+=10
+    if(c.dap==="Ja") s+=15; else if(c.dap==null||c.dap==="") s+=5
+    total+=Math.min(100,s); count++
+  })
+  v.h.c = Math.round(total/count)
+}
+
 function saveContractForm(editId){
   var gv = function(id){ var el=document.getElementById(id); return el?el.value.trim():"" }
   var err = document.getElementById("cf-error")
@@ -9243,6 +9317,17 @@ function saveContractForm(editId){
   var vendorEl=document.getElementById("cf-vendor"), vendorId=vendorEl?+vendorEl.value:null
   var typeEl=document.getElementById("cf-type"), statusEl=document.getElementById("cf-status")
   var renewEl=document.getElementById("cf-renewal"), valEl=document.getElementById("cf-value")
+  var gsel = function(id){ var el=document.getElementById(id); return el?el.value||null:null }
+  var complianceFields = {
+    governance_ok:    gsel("cf-gov"),
+    vwo:              gsel("cf-vwo"),
+    sla:              gsel("cf-sla"),
+    dap:              gsel("cf-dap"),
+    contract_present: gsel("cf-cp"),
+    status_note:      gv("cf-statusnote")||null,
+    max_end:          gv("cf-maxend")||null,
+    drawn:            gv("cf-drawn")?parseFloat(gv("cf-drawn"))||null:null,
+  }
   if(editId && editId!=="null"){
     var c = findContractById(editId)
     if(c){
@@ -9251,16 +9336,21 @@ function saveContractForm(editId){
       if(statusEl) c.status=statusEl.value
       if(renewEl) c.renewal_type=renewEl.value
       if(valEl) c.value=parseFloat(valEl.value)||c.value
+      Object.assign(c, complianceFields)
+      _recomputeVendorHc(editId)
       auditLog("UPDATE","Contract bijgewerkt: "+name, editId)
       toast("✓ Contract bijgewerkt")
     }
   } else {
     var v2 = VENDORS.find(function(x){return x.id===vendorId})
     if(!v2){ if(err) err.textContent="Select a vendor"; return }
-    var newC={id:"CON-"+Date.now(),name:name,start:start,end:end,
-      type:typeEl?typeEl.value:"maintenance",status:statusEl?statusEl.value:"active",
-      renewal_type:renewEl?renewEl.value:"auto",value:valEl?parseFloat(valEl.value)||0:0}
+    var newC = Object.assign({id:"CON-"+Date.now(),name:name,start:start,end:end,
+      type:typeEl?typeEl.value:"saas",status:statusEl?statusEl.value:"active",
+      renewal_type:renewEl?renewEl.value:"manual",
+      value:valEl?parseFloat(valEl.value)||0:0,
+      legal_entity:"Gemeente Den Haag",domain:gv("cf-domain")||""}, complianceFields)
     v2.contracts.push(newC)
+    _recomputeVendorHc(null, v2)
     auditLog("CREATE","Contract aangemaakt: "+name, newC.id)
     toast("✓ Contract toegevoegd")
   }
