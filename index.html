@@ -129,8 +129,8 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
 .notif-dot{position:absolute;top:4px;right:4px;width:6px;height:6px;background:var(--red);border-radius:50%;border:1.5px solid #fff}
 
 /* ═══════════════════ CONTENT ═══════════════════ */
-#content{padding:20px 24px;flex:1}
-.view{display:none}.view.active{display:block}
+#content{padding:20px 24px;flex:1;overflow-x:hidden;overflow-y:auto}
+.view,.view-pane{display:none}.view.active,.view-pane.active{display:block}
 
 /* KPI grid */
 /* ═══════════════════ LANDING PAGE ═══════════════════ */
@@ -1074,7 +1074,7 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
     </div>
 
     <!-- CONTACTS -->
-    <div class="view-pane" id="view-contacts"></div>
+    <div class="view" id="view-contacts"></div>
 
     <!-- RENEWAL -->
     <div class="view" id="view-renewal">
@@ -9946,10 +9946,18 @@ function showView(id){
 }
 
 function _activateView(id){
-  document.querySelectorAll(".view").forEach(function(v){v.classList.remove("active")})
-  document.getElementById("view-"+id).classList.add("active")
+  // Hide all views (including any that were accidentally left visible)
+  document.querySelectorAll(".view,.view-pane").forEach(function(v){v.classList.remove("active");v.style.display="none"})
+  var target=document.getElementById("view-"+id)
+  if(target){target.classList.add("active");target.style.display=""}
   document.querySelectorAll(".nav-item").forEach(function(n){n.classList.remove("active")})
   document.querySelector('[data-view="'+id+'"]')?.classList.add("active")
+  // Reset scroll position so new view always starts at top
+  var content=document.getElementById("content")
+  if(content) content.scrollTop=0
+  // Close drawer if open
+  var dr=document.getElementById("vendor-drawer")
+  if(dr&&dr.classList.contains("open")) closeDrawer()
   currentView=id
   updateDashboardHeader()
   updateWriteControls()
