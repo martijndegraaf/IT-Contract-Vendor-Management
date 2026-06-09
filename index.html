@@ -1799,6 +1799,179 @@ let TASKS = [
   {"id": 46, "title": "Opzegtermijn bewaken – Axiell ALM Netherlands B.V.", "category": "Renewal", "vendorId": "v3", "vendor": "Axiell ALM Netherlands B.V.", "assignee": "A. de Vries", "priority": "hoog", "status": "done", "source": "compliance_record", "due": "2026-06-30"},
 ]
 
+/* ──────────────── RENEWAL FUNNEL DATA ──────────────── */
+
+// Gate config: which personas must sign at each stage
+const RENEWAL_GATE_CONFIG = {
+  t9:  { label:"T-9",  title:"Needs validation",  required:["po"] },
+  t6:  { label:"T-6",  title:"Make decision",      required:["cm","mgr"] },
+  t3:  { label:"T-3",  title:"Legal deadline",     required:["cm","ce","po","mgr"] },
+}
+
+// Persona display meta used by renewal sign-off UI
+const PERSONA_DISPLAY = {
+  cm:  { label:"Contract Manager", short:"CM",  color:"#154273", bg:"#e8f0fa" },
+  ce:  { label:"Contract Owner",   short:"CE",  color:"#6d3fc0", bg:"#f0eafb" },
+  po:  { label:"Product Owner",    short:"PO",  color:"#077a8a", bg:"#e0f5f7" },
+  slm: { label:"SLM",              short:"SLM", color:"#c0392b", bg:"#fdecea" },
+  mgr: { label:"Manager",          short:"MGR", color:"#1a9e5c", bg:"#eaf7f1" },
+}
+
+// renewalGateStatus: derives missing/blocking/unlocked from signoffs + config
+function renewalGateStatus(rd) {
+  var cfg = RENEWAL_GATE_CONFIG[rd.stage]
+  if (!cfg) return { missing:[], blocking:[], unlocked:true }
+  var signoffs = rd.signoffs || []
+  var missing = cfg.required.filter(function(p) {
+    return !signoffs.some(function(s){ return s.persona===p })
+  })
+  var blocking = cfg.required.filter(function(p) {
+    var s = signoffs.find(function(s){ return s.persona===p })
+    return s && s.vote === "object"
+  })
+  var unlocked = missing.length === 0 && blocking.length === 0
+  return { missing:missing, blocking:blocking, unlocked:unlocked }
+}
+
+let RENEWAL_DATA = [
+  // ── T-3: Legal deadline — notice period, 4-way sign-off required ──────────
+  {
+    vendorId: 99, contract: "Wetgeving Navigator",
+    stage: "t3", endDate: "2026-08-04", val: 1338341,
+    decision: null, rationale: null,
+    signoffs: [],
+    decisionLog: [], locked: false, contested: false
+  },
+  {
+    vendorId: 58, contract: "ITSM Platform",
+    stage: "t3", endDate: "2026-08-07", val: 30004,
+    decision: "retender",
+    rationale: "Leverancier voldoet niet aan huidige AVG-eisen. Hertendering ingezet.",
+    signoffs: [
+      {persona:"cm", name:"Annet de Vries", ts:"2026-05-12T09:15:00.000Z", vote:"approve", voteNote:""},
+      {persona:"ce", name:"Bas Hendriks",   ts:"2026-05-14T11:30:00.000Z", vote:"approve", voteNote:"Akkoord, nieuwe aanbesteding vereist"},
+      {persona:"po", name:"Mark Visser",    ts:"2026-05-15T08:45:00.000Z", vote:"approve", voteNote:""},
+      {persona:"mgr",name:"Sandra Kuijpers",ts:"2026-05-16T14:00:00.000Z", vote:"approve", voteNote:""}
+    ],
+    decisionLog: [{decision:"retender", by:"Annet de Vries", ts:"2026-05-16T14:01:00.000Z", note:"Gate unlocked — all 4 signed"}],
+    locked: true, contested: false
+  },
+  {
+    vendorId: 62, contract: "Boekhoudpakket",
+    stage: "t3", endDate: "2026-09-17", val: 511821,
+    decision: null, rationale: null,
+    signoffs: [
+      {persona:"cm", name:"Annet de Vries", ts:"2026-05-20T10:00:00.000Z", vote:"approve", voteNote:"Verlenging 2 jaar gewenst"},
+      {persona:"mgr",name:"Sandra Kuijpers",ts:"2026-05-22T09:00:00.000Z", vote:"conditional", voteNote:"Alleen akkoord als prijsindex ≤ CPI"}
+    ],
+    decisionLog: [], locked: false, contested: false
+  },
+  {
+    vendorId: 46, contract: "Klachten & Bezwaar",
+    stage: "t3", endDate: "2026-09-03", val: 961505,
+    decision: "renew",
+    rationale: "VHS stabiel boven 80. Automatische verlenging 3 jaar bevestigd.",
+    signoffs: [
+      {persona:"cm", name:"Pieter de Boer",  ts:"2026-04-28T10:00:00.000Z", vote:"approve", voteNote:""},
+      {persona:"ce", name:"Bas Hendriks",    ts:"2026-04-29T14:00:00.000Z", vote:"approve", voteNote:""},
+      {persona:"po", name:"Mark Visser",     ts:"2026-04-30T09:30:00.000Z", vote:"approve", voteNote:"Functioneel goed beoordeeld"},
+      {persona:"mgr",name:"Sandra Kuijpers", ts:"2026-05-01T11:00:00.000Z", vote:"approve", voteNote:""}
+    ],
+    decisionLog: [{decision:"renew", by:"Pieter de Boer", ts:"2026-05-01T11:01:00.000Z", note:"Gate unlocked — all 4 signed"}],
+    locked: true, contested: false
+  },
+
+  // ── T-6: Decision gate — CM + Manager sign-off ────────────────────────────
+  {
+    vendorId: 81, contract: "Security Monitor",
+    stage: "t6", endDate: "2026-10-22", val: 724544,
+    decision: "terminate",
+    rationale: "Leverancier stopt product per 2027. Vervanging al in aanbesteding.",
+    signoffs: [
+      {persona:"cm", name:"Annet de Vries",  ts:"2026-04-10T10:00:00.000Z", vote:"approve", voteNote:"Beëindiging per contractdatum"},
+      {persona:"mgr",name:"Sandra Kuijpers", ts:"2026-04-12T09:00:00.000Z", vote:"approve", voteNote:"Akkoord — opvolger al geselecteerd"}
+    ],
+    decisionLog: [{decision:"terminate", by:"Annet de Vries", ts:"2026-04-12T09:01:00.000Z", note:"Gate cleared"}],
+    locked: false, contested: false
+  },
+  {
+    vendorId: 43, contract: "Bijstand & Inkomen",
+    stage: "t6", endDate: "2026-12-13", val: 1867259,
+    decision: null, rationale: null,
+    signoffs: [
+      {persona:"cm", name:"Annet de Vries", ts:"2026-05-05T10:00:00.000Z", vote:"approve", voteNote:"Advies: verlengen 1 jaar, dan hertendering"}
+    ],
+    decisionLog: [], locked: false, contested: false
+  },
+  {
+    vendorId: 69, contract: "Klachten & Bezwaar",
+    stage: "t6", endDate: "2026-11-01", val: 291634,
+    decision: null, rationale: null,
+    signoffs: [],
+    decisionLog: [], locked: false, contested: false
+  },
+
+  // ── T-9: Needs validation — Product Owner sign-off ────────────────────────
+  {
+    vendorId: 42, contract: "ITSM Platform",
+    stage: "t9", endDate: "2027-01-31", val: 369688,
+    decision: null, rationale: null,
+    signoffs: [
+      {persona:"po", name:"Mark Visser", ts:"2026-04-03T14:00:00.000Z", vote:"approve", voteNote:"Functionele behoeften ongewijzigd. Verlenging gewenst."}
+    ],
+    decisionLog: [], locked: false, contested: false
+  },
+  {
+    vendorId: 91, contract: "Subsidie Administratie",
+    stage: "t9", endDate: "2027-03-07", val: 2144255,
+    decision: null, rationale: null,
+    signoffs: [
+      {persona:"po", name:"Thomas Groot", ts:"2026-03-18T09:00:00.000Z", vote:"conditional", voteNote:"Additionele module rapportage is vereiste voor volgende periode"}
+    ],
+    decisionLog: [], locked: false, contested: false
+  },
+  {
+    vendorId: 66, contract: "BGT Suite",
+    stage: "t9", endDate: "2027-01-20", val: 2243255,
+    decision: null, rationale: null,
+    signoffs: [],
+    decisionLog: [], locked: false, contested: false
+  },
+  {
+    vendorId: 98, contract: "ITSM Platform",
+    stage: "t9", endDate: "2027-04-01", val: 260110,
+    decision: null, rationale: null,
+    signoffs: [],
+    decisionLog: [], locked: false, contested: false
+  },
+
+  // ── T-12: Performance review — system / AI initiated ─────────────────────
+  {
+    vendorId: 94, contract: "Wetgeving Navigator",
+    stage: "t12", endDate: "2027-04-20", val: 369502,
+    decision: null, rationale: null,
+    signoffs: [], decisionLog: [], locked: false, contested: false
+  },
+  {
+    vendorId: 59, contract: "DMS Platform",
+    stage: "t12", endDate: "2027-08-06", val: 242204,
+    decision: null, rationale: null,
+    signoffs: [], decisionLog: [], locked: false, contested: false
+  },
+  {
+    vendorId: 87, contract: "Boekhoudpakket",
+    stage: "t12", endDate: "2027-05-12", val: 2090997,
+    decision: null, rationale: null,
+    signoffs: [], decisionLog: [], locked: false, contested: false
+  },
+  {
+    vendorId: 77, contract: "Planning & Control",
+    stage: "t12", endDate: "2027-07-27", val: 63820,
+    decision: null, rationale: null,
+    signoffs: [], decisionLog: [], locked: false, contested: false
+  },
+]
+
 /* ──────────────── DOCUMENT TYPES ──────────────── */
 const DOC_TYPES = {
   // Contract group
@@ -3153,7 +3326,7 @@ function injectRbacBanner(viewId){
 
 // Flat list of all contracts with parent vendor attached
 function allContracts(){
-  return VENDORS.flatMap(v=>v.contracts.map(c=>({...c,vendor:v})))
+  return VENDORS.flatMap(v=>v.contracts.map(c=>({...c,vendorId:v.id,vendor:v})))
 }
 
 // Contract status config
@@ -3171,10 +3344,14 @@ const CT_STATUS = {
 }
 var CONTRACT_COMMENTS = {} // {contractId: [{id,author,text,type,ts}]}
 const CT_TYPE = {
-  sla:    {label:"SLA",    color:"#154273", bg:"#e8f0fa"},
-  inkoop: {label:"Procurement", color:"#077a8a", bg:"#e0f5f7"},
-  nda:    {label:"NDA",    color:"#6d3fc0", bg:"#f0eafb"},
-  lease:  {label:"Lease",  color:"#c9a227", bg:"#fef8e7"},
+  sla:       {label:"SLA",         color:"#154273", bg:"#e8f0fa"},
+  inkoop:    {label:"Procurement", color:"#077a8a", bg:"#e0f5f7"},
+  nda:       {label:"NDA",         color:"#6d3fc0", bg:"#f0eafb"},
+  lease:     {label:"Lease",       color:"#c9a227", bg:"#fef8e7"},
+  saas:      {label:"SaaS",        color:"#077a8a", bg:"#e0f5f7"},
+  license:   {label:"License",     color:"#154273", bg:"#e8f0fa"},
+  support:   {label:"Support",     color:"#1a9e5c", bg:"#eaf7f1"},
+  framework: {label:"Framework",   color:"#6d3fc0", bg:"#f0eafb"},
 }
 const CT_RENEWAL = {
   handmatig:   {label:"Manual",   color:"#154273"},
@@ -6543,7 +6720,64 @@ function renderPortfolioAnalytics(){
     + _aCard('Top 5 Contracts by Value <span style="font-size:10px;color:var(--g400);font-weight:400">(click to open)</span>', top5Html, '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>')
     + '</div>'
 
-  document.getElementById('analytics-grid').innerHTML = kpis + row1 + row2 + row3
+  // ── Row 4: Compliance overview ────────────────────────────────
+  var compChecks = [
+    {key:'governance_ok', label:'Governance ingeregeld'},
+    {key:'vwo',           label:'VWO aanwezig'},
+    {key:'sla',           label:'SLA aanwezig'},
+    {key:'dap',           label:'DAP aanwezig'},
+    {key:'contract_present', label:'Contract aanwezig'},
+  ]
+  var compHtml = '<div style="display:flex;flex-direction:column;gap:8px">'
+  compChecks.forEach(function(ch){
+    var ja=0,nee=0,nvt=0,onb=0
+    contracts.forEach(function(c){
+      var v=c[ch.key]
+      if(v==='Ja') ja++
+      else if(v==='Nee') nee++
+      else if(v==='Nvt') nvt++
+      else onb++
+    })
+    var pct = total ? Math.round(ja/total*100) : 0
+    var col = pct>=80?'#1a9e5c':pct>=50?'#d97706':'#c0392b'
+    compHtml += '<div style="display:flex;align-items:center;gap:8px;font-size:var(--fs-xs)">'
+      + '<div style="width:130px;color:var(--g600)">'+ch.label+'</div>'
+      + '<div style="flex:1;background:var(--g100);border-radius:20px;height:8px;overflow:hidden">'
+      + '<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:20px;transition:width .5s"></div></div>'
+      + '<div style="width:28px;text-align:right;font-weight:700;color:'+col+'">'+pct+'%</div>'
+      + '<div style="width:28px;text-align:right;color:#1a9e5c;font-size:10px">'+ja+'✓</div>'
+      + '<div style="width:28px;text-align:right;color:#c0392b;font-size:10px">'+nee+'✗</div>'
+      + (onb?'<div style="width:28px;text-align:right;color:var(--g400);font-size:10px">'+onb+'?</div>':'<div style="width:28px"></div>')
+      + '</div>'
+  })
+  compHtml += '</div>'
+
+  // Kraljic distribution
+  var kqCounts = {routine:0,leverage:0,bottleneck:0,strategic:0}
+  var kqColors = {routine:'#5c6575',leverage:'#077a8a',bottleneck:'#d97706',strategic:'#154273'}
+  VENDORS.forEach(function(v){ if(kqCounts[v.kraljic_category]!==undefined) kqCounts[v.kraljic_category]++ })
+  var kqTotal = VENDORS.length
+  var kqHtml = '<div style="display:flex;flex-direction:column;gap:8px">'
+  Object.entries(kqCounts).forEach(function(e){
+    var pct = Math.round(e[1]/kqTotal*100)
+    var col = kqColors[e[0]]||'var(--g400)'
+    var lbl = e[0].charAt(0).toUpperCase()+e[0].slice(1)
+    kqHtml += '<div style="display:flex;align-items:center;gap:8px;font-size:var(--fs-xs)">'
+      + '<div style="width:80px;color:var(--g600)">'+lbl+'</div>'
+      + '<div style="flex:1;background:var(--g100);border-radius:20px;height:8px;overflow:hidden">'
+      + '<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:20px"></div></div>'
+      + '<div style="width:22px;text-align:right;font-weight:600;color:'+col+'">'+e[1]+'</div>'
+      + '<div style="width:28px;text-align:right;color:var(--g400)">'+pct+'%</div>'
+      + '</div>'
+  })
+  kqHtml += '</div>'
+
+  var row4 = '<div style="display:grid;grid-template-columns:3fr 2fr;gap:12px;margin-bottom:12px">'
+    + _aCard('Compliance Checklist — Portfolio Overview', compHtml, '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#077a8a" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>')
+    + _aCard('Vendors by Kraljic Category', kqHtml, '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#154273" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>')
+    + '</div>'
+
+  document.getElementById('analytics-grid').innerHTML = kpis + row1 + row2 + row3 + row4
 }
 
 /* ══ VENDOR DASHBOARD ═══════════════════════════════════════════ */
@@ -6552,19 +6786,24 @@ function renderVendorAnalytics(selVendorId){
   var vf = document.getElementById('analytics-vendor-filter')
   if(vf) vf.style.display = 'block'
 
-  // VHS scores bar chart
+  // VHS scores bar chart — cap at 30, show worst-first when no vendor selected
   var sorted = vendors.map(function(v){return {v:v, score:calcScore(v.h)}}).sort(function(a,b){return b.score-a.score})
-  var vhsHtml = '<div style="display:flex;align-items:flex-end;gap:4px;height:120px;padding-top:16px">'
-  sorted.forEach(function(item){
-    var r = rag(item.score)
-    var col = RC[r]
-    vhsHtml += '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;position:relative">'
-      + '<div style="font-size:11px;font-weight:700;color:'+col+'">'+item.score+'</div>'
-      + '<div style="width:100%;background:'+col+';border-radius:3px 3px 0 0;height:'+Math.round(item.score*1.1)+'px;cursor:pointer;transition:opacity .15s" onclick="openDrawer('+item.v.id+')" title="'+vName(item.v)+': '+item.score+'" onmouseenter="this.style.opacity=\'.75\'" onmouseleave="this.style.opacity=\'1\'"></div>'
-      + '<div style="font-size:11px;color:var(--g400);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">'+vName(item.v).split(' ')[0]+'</div>'
+  var chartVendors = selVendorId ? sorted : sorted.slice(0,30)
+  var barW = Math.max(10, Math.floor(560/chartVendors.length))
+  var vhsHtml = '<div style="overflow-x:auto"><div style="display:flex;align-items:flex-end;gap:3px;height:130px;padding-top:16px;min-width:'+(chartVendors.length*barW+40)+'px">'
+  chartVendors.forEach(function(item){
+    var r = rag(item.score), col = RC[r]
+    var barH = Math.max(6, Math.round(item.score * 1.0))
+    vhsHtml += '<div style="display:flex;flex-direction:column;align-items:center;gap:1px;width:'+barW+'px;flex-shrink:0">'
+      + '<div style="font-size:9px;font-weight:700;color:'+col+'">'+item.score+'</div>'
+      + '<div style="width:'+(barW-2)+'px;background:'+col+';border-radius:2px 2px 0 0;height:'+barH+'px;cursor:pointer;transition:opacity .15s" onclick="openDrawer('+item.v.id+')" title="'+vName(item.v)+' · VHS '+item.score+'" onmouseenter="this.style.opacity=\'.7\'" onmouseleave="this.style.opacity=\'1\'"></div>'
+      + '<div style="font-size:9px;color:var(--g400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:'+barW+'px;text-align:center">'+vName(item.v).split(' ')[0].slice(0,8)+'</div>'
       + '</div>'
   })
-  vhsHtml += '</div>'
+  vhsHtml += '</div></div>'
+  if(!selVendorId && vendors.length > 30){
+    vhsHtml += '<div style="font-size:10px;color:var(--g400);margin-top:4px">Showing top 30 of '+vendors.length+' vendors by VHS score. Use vendor filter to inspect individual vendors.</div>'
+  }
 
   // VHS component radar-style breakdown (horizontal bars per component)
   var v0 = selVendorId ? vendors[0] : null
