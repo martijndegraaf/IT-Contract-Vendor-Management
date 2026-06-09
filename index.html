@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 /* ═══════════════════ TOKENS ═══════════════════ */
 :root{
@@ -997,6 +998,7 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
         <div><span class="sec-title">All Vendors</span><span class="sec-sub" id="vendor-count-lbl2"></span></div>
         <div style="display:flex;align-items:center;gap:8px">
           <button id="vendor-add-btn" onclick="openNewVendorForm()" style="background:#154273;border:none;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;display:none">+ New vendor</button>
+          <button onclick="exportVendorsXLSX()" title="Export to Excel" style="display:flex;align-items:center;gap:4px;padding:5px 11px;border:1px solid var(--g200);border-radius:6px;background:#fff;font-size:11px;font-weight:600;color:var(--g600);cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>Export</button>
           <div style="display:flex;background:#fff;border:1px solid var(--g200);border-radius:6px;overflow:hidden">
             <button id="vv-portfolio-btn" onclick="setVendorViewMode('portfolio')" style="padding:4px 10px;border:none;font-size:11px;cursor:pointer;background:#154273;color:#fff" title="Portfolio view">≡</button>
             <button id="vv-grid-btn" onclick="setVendorViewMode('grid')" style="padding:4px 10px;border:none;font-size:11px;cursor:pointer;background:#fff;color:var(--g600)" title="Card grid">▦</button>
@@ -2963,15 +2965,16 @@ function renderLandingSLM(){
   const slaVendors = VENDORS.map(v => {
     const slaScore = Math.round((v.h.c * 0.4) + (v.h.p * 0.6)) // compliance 40% + performance 60%
     const rSla = rag(slaScore)
-    const mttr = v.id === 3 ? "72h" : v.id === 5 ? "44h" : v.id === 1 ? "38h" : v.id === 2 ? "12h" : v.id === 4 ? "28h" : "8h"
-    const uptime = v.id === 3 ? 97.8 : v.id === 5 ? 99.1 : v.id === 1 ? 99.6 : v.id === 2 ? 99.95 : v.id === 4 ? 99.7 : 99.97
-    const target  = v.id === 2 ? 99.9 : v.id === 6 ? 99.95 : 99.5
+    const perf = v.h ? v.h.p : 50
+    const mttr = perf >= 90 ? "8h" : perf >= 80 ? "12h" : perf >= 70 ? "24h" : perf >= 60 ? "48h" : "72h"
+    const uptime = perf >= 90 ? 99.95 : perf >= 80 ? 99.7 : perf >= 70 ? 99.3 : perf >= 60 ? 98.5 : 97.8
+    const target  = v.kraljic_category === "strategic" ? 99.9 : v.kraljic_category === "routine" ? 99.0 : 99.5
     const breach  = uptime < target
     return {...v, slaScore, rSla, mttr, uptime, target, breach, slaCount: v.contracts.filter(c=>c.type==="sla").length}
   }).filter(v => v.slaCount > 0)
 
   // My tasks (SLM)
-  const myTasks = TASKS.filter(t => t.assignee === "L. of den Berg" && t.status !== "done")
+  const myTasks = TASKS.filter(t => t.assignee === "L. van den Berg" && t.status !== "done")
   const urgentTasks = myTasks.filter(t => t.due && t.due <= today)
 
   // Breach vendors
@@ -3500,6 +3503,7 @@ function renderCtModeBar(){
     +'<button onclick="ctSetViewMode(\'triage\')" title="'+pinTip+'" style="'+(ctViewMode==="triage"?btnActive:btnInact)+btnBase+'">'+urgPill+'Triage'+(ctViewMode==="triage"?' <span style="font-size:11px;opacity:.7">&#9734; default</span>':'')+'</button>'
     +'<button onclick="ctSetViewMode(\'table\')" title="'+pinTip+'" style="'+(ctViewMode==="table"?btnActive:btnInact)+btnBase+'">All contracts ('+allContracts().length+')'+(ctViewMode==="table"?' <span style="font-size:11px;opacity:.7">&#9734; default</span>':'')+'</button>'
     +mineBtn
+    +'<button onclick="exportContractsXLSX()" title="Export to Excel" style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;color:var(--g600);border:1px solid var(--g200);background:#fff;cursor:pointer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>Export</button>'
     +'</div>'
 }
 
@@ -6390,6 +6394,40 @@ function _renderAlertList(q, tag){
       tag:'Retention', vendor:v2?vName(v2):'', meta:d.retentionDaysLeft+'d left',
       primaryLabel:'Document log', primaryAction:"showView('documents')",
       primaryStyle:'background:#f0eafb;color:#6d3fc0;border-color:#c4a8ed'
+    })
+  })
+
+
+  // ── Compliance field alerts ─────────────────────────────────────────────
+  var compChecks = [
+    {field:'governance_ok', label:'Governance not in place',     tag:'Compliance', color:'#6d3fc0', bg:'#f0eafb', border:'#c4a8ed'},
+    {field:'vwo',           label:'VWO missing or expired',      tag:'Compliance', color:'#6d3fc0', bg:'#f0eafb', border:'#c4a8ed'},
+    {field:'dap',           label:'DAP not established',         tag:'Compliance', color:'#077a8a', bg:'#e0f5f7', border:'#9dd9e0'},
+    {field:'contract_present', label:'Contract missing from dossier', tag:'Compliance', color:'#d97706', bg:'#fef3e0', border:'#fac775'},
+  ]
+  var compCount = 0
+  VENDORS.forEach(function(v){
+    v.contracts.forEach(function(c){
+      if(c.status !== 'active') return
+      compChecks.forEach(function(chk){
+        var val = c[chk.field]
+        if(val !== 'Nee') return   // only fire on explicit Nee
+        var k = 'comp_'+chk.field+'_'+c.id
+        if(_alSnoozed[k] && _alSnoozed[k] > now) return
+        compCount++
+        if(compCount > 20) return  // cap at 20 compliance alerts
+        var item = {
+          key:k, borderColor:chk.color, iconBg:chk.bg, iconColor:chk.color,
+          iconSvg:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 0 2 2h7"/>',
+          title: chk.label + ' — ' + c.name,
+          desc: vName(v) + ' · Contract ' + c.id + (c.domain ? ' · ' + c.domain : ''),
+          tag: chk.tag, vendor: vName(v), meta: 'Nee',
+          primaryLabel: 'Open contract', primaryAction: 'showContractDetail("'+c.id+'")',
+          primaryStyle: 'background:'+chk.bg+';color:'+chk.color+';border-color:'+chk.border,
+          unread: false
+        }
+        attention.push(item)
+      })
     })
   })
 
@@ -10537,37 +10575,57 @@ function exportContractPDF(contractId){
 /* ── 3. CONTRACTS XLSX EXPORT ───────────────────── */
 // camelCase alias so both naming styles work
 var exportContractPdf = exportContractPDF
-function exportContractsXLSX(){
-  // Build a CSV-based XLSX-compatible export (tab-separated, .xlsx via Blob trick)
-  // For a real XLSX we'd need SheetJS — fall back to well-formed CSV with .csv
-  var rows = [
-    ['ID','Contract Name','Vendor','Legal Name','Type','Status','Start','End','Days Remaining',
-     'Value (€)','Annual Value (€)','Notice (days)','Renewal Type','Signed','Domain','Policy Area','Funding','Legal Entity','KvK']
-  ]
-  allContracts().forEach(function(c){
-    var v = c.vendor
-    var d = daysLeft(c.end)
-    var st = CT_STATUS[c.status]||{label:c.status}
-    var ct = CT_TYPE[c.type]||{label:c.type}
+
+function exportVendorsXLSX(){
+  if(typeof XLSX === 'undefined'){ toast('⚠ SheetJS not loaded'); return }
+  var rows = [['ID','Trade Name','Legal Name','KvK','Internal Owner','Product Owner',
+    'Kraljic','Lifecycle','Risk','VHS','Compliance','Performance','Adoption','Sentiment',
+    'Licensed Users','Active Users','Portfolio Value (€)','Contracts']]
+  VENDORS.forEach(function(v){
+    var h = v.h || {}
+    var score = Math.round((h.c||0)*.35+(h.p||0)*.35+(h.a||0)*.20+(h.s||0)*.10)
+    var portVal = v.contracts.reduce(function(s,c){return s+c.value},0)
     rows.push([
-      c.id, '"'+c.name.replace(/"/g,'""')+'"', '"'+vName(v).replace(/"/g,'""')+'"',
-      '"'+v.legal_name.replace(/"/g,'""')+'"',
-      ct.label, st.label, c.start, c.end, d>0?d:'Expired',
-      c.value, c.annual_value||'', c.notice||'', c.renewal_type||'',
-      c.signed?'Yes':'No',
-      c.domain||v.domain||'', c.beleidsveld||'', c.bekostiging||'',
-      c.legal_entity||'', v.kvk||''
+      String(v.id), v.trade_name||'', v.legal_name||'', v.kvk||'',
+      v.internal_owner||'', v.product_owner||'',
+      (v.kraljic_category||''), (v.lifecycle_stage||''), (v.risk_level||''),
+      score, h.c||0, h.p||0, h.a||0, h.s||0,
+      v.licensed_users||0, v.active_users||0, portVal, v.contracts.length
     ])
   })
-  var csv = rows.map(function(r){return r.join(',')}).join('\n')
-  var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'})
-  var url = URL.createObjectURL(blob)
-  var a = document.createElement('a')
-  a.href = url
-  a.download = 'PVSP-Contracts-'+new Date().toISOString().split('T')[0]+'.csv'
-  a.click()
-  URL.revokeObjectURL(url)
-  auditLog('CREATE','Contracts exported to CSV/XLSX', null)
+  var ws = XLSX.utils.aoa_to_sheet(rows)
+  ws['!cols'] = [8,22,30,12,24,18,12,12,8,6,10,10,10,10,13,12,18,10].map(function(w){return{wch:w}})
+  var wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Vendors')
+  XLSX.writeFile(wb, 'PVSP-Vendors-'+new Date().toISOString().split('T')[0]+'.xlsx')
+  auditLog('CREATE','Vendors exported to XLSX', null)
+  toast('✓ Vendors exported: '+VENDORS.length+' rows')
+}
+
+function exportContractsXLSX(){
+  if(typeof XLSX === 'undefined'){ toast('⚠ SheetJS not loaded'); return }
+  var rows = [['ID','Contract','Type','Status','Vendor','Internal Owner','Domain',
+    'Start','End','Days Left','Notice (d)','Renewal','Value (€)','Drawn (€)',
+    'Gov OK','VWO','SLA','DAP','Contract Present','Via Broker','MDT Team','Status Note']]
+  allContracts().forEach(function(c){
+    var d = daysLeft(c.end)
+    rows.push([
+      c.id, c.name, (c.type||'').toUpperCase(), c.status,
+      c.vendor ? vName(c.vendor) : '', c.vendor ? (c.vendor.internal_owner||'') : '',
+      c.domain||'', c.start||'', c.end||'',
+      (d !== null ? d : ''), c.notice||'', c.renewal_type||'',
+      c.value||0, c.drawn||'',
+      c.governance_ok||'', c.vwo||'', c.sla||'', c.dap||'',
+      c.contract_present||'', c.via_broker||'', c.mdt_team||'', c.status_note||''
+    ])
+  })
+  var ws = XLSX.utils.aoa_to_sheet(rows)
+  // Column widths
+  ws['!cols'] = [8,28,7,10,22,22,16,11,11,8,8,12,14,14,8,6,6,6,14,10,16,28].map(function(w){return{wch:w}})
+  var wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Contracts')
+  XLSX.writeFile(wb, 'PVSP-Contracts-'+new Date().toISOString().split('T')[0]+'.xlsx')
+  auditLog('CREATE','Contracts exported to XLSX', null)
   toast('✓ Contracts exported: '+allContracts().length+' rows')
 }
 
