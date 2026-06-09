@@ -1328,15 +1328,26 @@ nav{flex:1;padding:4px 8px;display:flex;flex-direction:column;gap:1px;overflow-y
         <div style="display:flex;align-items:center;gap:0;border-bottom:2px solid var(--g150);margin-bottom:20px">
           <button id="atab-portfolio" onclick="switchAnalyticsTab('portfolio')"
             style="padding:9px 18px;font-size:var(--fs-sm);font-weight:var(--fw-semi);border:none;background:none;cursor:pointer;color:var(--gov);border-bottom:2px solid var(--gov);margin-bottom:-2px">
-            Portfolio Overview
+            Portfolio
           </button>
           <button id="atab-vendor" onclick="switchAnalyticsTab('vendor')"
             style="padding:9px 18px;font-size:var(--fs-sm);font-weight:var(--fw-medium);border:none;background:none;cursor:pointer;color:var(--g400);border-bottom:2px solid transparent;margin-bottom:-2px">
-            Vendor Analysis
+            Vendor
           </button>
-          <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-            <select id="analytics-vendor-filter" onchange="renderAnalytics()" style="font-size:var(--fs-xs);padding:4px 8px;border:1px solid var(--g200);border-radius:var(--r-sm);background:#fff;color:var(--g600);display:none">
+          <button id="atab-contract" onclick="switchAnalyticsTab('contract')"
+            style="padding:9px 18px;font-size:var(--fs-sm);font-weight:var(--fw-medium);border:none;background:none;cursor:pointer;color:var(--g400);border-bottom:2px solid transparent;margin-bottom:-2px">
+            Contract
+          </button>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <div id="analytics-mine-bar" style="display:flex;border:1px solid var(--g200);border-radius:var(--r-sm);overflow:hidden">
+              <button id="analytics-scope-all" onclick="analyticsSetScope('all')" style="padding:3px 10px;font-size:var(--fs-xs);font-weight:var(--fw-semi);border:none;background:var(--gov);color:#fff;cursor:pointer">All</button>
+              <button id="analytics-scope-mine" onclick="analyticsSetScope('mine')" style="padding:3px 10px;font-size:var(--fs-xs);font-weight:var(--fw-medium);border:none;background:#fff;color:var(--g500);cursor:pointer">Mine</button>
+            </div>
+            <select id="analytics-vendor-filter" onchange="analyticsVendorChanged()" style="font-size:var(--fs-xs);padding:4px 8px;border:1px solid var(--g200);border-radius:var(--r-sm);background:#fff;color:var(--g600)">
               <option value="all">All vendors</option>
+            </select>
+            <select id="analytics-contract-filter" onchange="analyticsContractChanged()" style="font-size:var(--fs-xs);padding:4px 8px;border:1px solid var(--g200);border-radius:var(--r-sm);background:#fff;color:var(--g600)">
+              <option value="all">All contracts</option>
             </select>
             <span style="font-size:var(--fs-xs);color:var(--g400)" id="analytics-updated"></span>
             <button onclick="generatePortfolioPDF()" style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--r-sm);border:1px solid var(--g200);background:#fff;font-size:var(--fs-xs);font-weight:var(--fw-medium);color:var(--g600);cursor:pointer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Export PDF</button>
@@ -6563,10 +6574,69 @@ function renderAlerts(){
 
 /* ──────────────── ANALYTICS ──────────────── */
 var _analyticsTab = 'portfolio'
+var _analyticsScope = 'all'  // 'all' | 'mine'
+
+function analyticsSetScope(scope){
+  _analyticsScope = scope
+  var btnAll  = document.getElementById('analytics-scope-all')
+  var btnMine = document.getElementById('analytics-scope-mine')
+  if(btnAll){
+    btnAll.style.background  = scope==='all'  ? 'var(--gov)' : '#fff'
+    btnAll.style.color       = scope==='all'  ? '#fff' : 'var(--g500)'
+    btnAll.style.fontWeight  = scope==='all'  ? 'var(--fw-semi)' : 'var(--fw-medium)'
+  }
+  if(btnMine){
+    btnMine.style.background = scope==='mine' ? 'var(--gov)' : '#fff'
+    btnMine.style.color      = scope==='mine' ? '#fff' : 'var(--g500)'
+    btnMine.style.fontWeight = scope==='mine' ? 'var(--fw-semi)' : 'var(--fw-medium)'
+  }
+  renderAnalytics()
+}
+
+function analyticsMineVendors(){
+  if(_analyticsScope !== 'mine') return VENDORS
+  var currentUser = (SESSION && SESSION.name) ? SESSION.name.toLowerCase() : ''
+  if(!currentUser) return VENDORS
+  return VENDORS.filter(function(v){
+    var io = (v.internal_owner||'').toLowerCase()
+    var po = (v.product_owner||'').toLowerCase()
+    return io.indexOf(currentUser)!==-1 || po.indexOf(currentUser)!==-1
+  })
+}
+
+function analyticsVendorChanged(){
+  var vf = document.getElementById('analytics-vendor-filter')
+  var selVendorId = vf && vf.value!=='all' ? +vf.value : null
+  // Repopulate contract dropdown based on vendor selection
+  var cf = document.getElementById('analytics-contract-filter')
+  if(cf){
+    cf.value = 'all'
+    while(cf.options.length > 1) cf.remove(1)
+    var ctSrc = selVendorId ? VENDORS.filter(function(v){return v.id===selVendorId}) : analyticsMineVendors()
+    var ctList = []
+    ctSrc.forEach(function(v){ v.contracts.forEach(function(c){ ctList.push({c:c,v:v}) }) })
+    ctList.sort(function(a,b){return a.c.name.localeCompare(b.c.name)})
+    ctList.forEach(function(item){
+      var o = document.createElement('option')
+      o.value = item.c.id
+      o.textContent = item.c.name.substring(0,40) + (selVendorId ? '' : ' (' + vName(item.v).split(' ')[0] + ')')
+      cf.appendChild(o)
+    })
+  }
+  // Auto-switch tab
+  if(selVendorId && _analyticsTab === 'portfolio') switchAnalyticsTab('vendor')
+  else renderAnalytics()
+}
+
+function analyticsContractChanged(){
+  var cf = document.getElementById('analytics-contract-filter')
+  if(cf && cf.value !== 'all') switchAnalyticsTab('contract')
+  else renderAnalytics()
+}
 
 function switchAnalyticsTab(tab){
   _analyticsTab = tab
-  var tabs = ['portfolio','vendor']
+  var tabs = ['portfolio','vendor','contract']
   tabs.forEach(function(t){
     var btn = document.getElementById('atab-'+t)
     if(!btn) return
@@ -6580,8 +6650,6 @@ function switchAnalyticsTab(tab){
       btn.style.borderBottom = '2px solid transparent'
     }
   })
-  var vf = document.getElementById('analytics-vendor-filter')
-  if(vf) vf.style.display = tab==='vendor' ? 'block' : 'none'
   renderAnalytics()
 }
 
@@ -6589,26 +6657,53 @@ function renderAnalytics(){
   var upd = document.getElementById('analytics-updated')
   if(upd) upd.textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})
 
-  // Populate vendor filter
+  // Populate vendor filter (scoped to Mine if active)
   var vf = document.getElementById('analytics-vendor-filter')
   if(vf){
     var prevVal = vf.value
     while(vf.options.length > 1) vf.remove(1)
-    VENDORS.forEach(function(v){ var o=document.createElement('option'); o.value=v.id; o.textContent=vName(v); vf.appendChild(o) })
+    analyticsMineVendors().forEach(function(v){ var o=document.createElement('option'); o.value=v.id; o.textContent=vName(v); vf.appendChild(o) })
     if(prevVal && prevVal!=='all') vf.value = prevVal
   }
   var selVendorId = vf ? (vf.value==='all'?null:+vf.value) : null
 
-  if(_analyticsTab === 'vendor'){
+  // Populate contract filter
+  var cf = document.getElementById('analytics-contract-filter')
+  if(cf && cf.options.length <= 1){
+    var ctSrc = selVendorId ? VENDORS.filter(function(v){return v.id===selVendorId}) : analyticsMineVendors()
+    var ctList = []
+    ctSrc.forEach(function(v){ v.contracts.forEach(function(c){ ctList.push({c:c,v:v}) }) })
+    ctList.sort(function(a,b){return a.c.name.localeCompare(b.c.name)})
+    ctList.forEach(function(item){
+      var o = document.createElement('option')
+      o.value = item.c.id
+      o.textContent = item.c.name.substring(0,40) + (selVendorId ? '' : ' (' + vName(item.v).split(' ')[0] + ')')
+      cf.appendChild(o)
+    })
+  }
+  var selContractId = cf ? (cf.value==='all'?null:cf.value) : null
+
+  if(_analyticsTab === 'contract'){
+    renderContractAnalytics(selContractId)
+  } else if(_analyticsTab === 'vendor'){
     renderVendorAnalytics(selVendorId)
   } else {
-    renderPortfolioAnalytics()
+    renderPortfolioAnalytics(selVendorId)
   }
 }
 
 /* ══ PORTFOLIO DASHBOARD ═══════════════════════════════════════ */
-function renderPortfolioAnalytics(){
-  var contracts = allContracts()
+function renderPortfolioAnalytics(selVendorId){
+  // Scope to Mine vendors first, then optionally to a single vendor
+  var scopedVendors = selVendorId
+    ? VENDORS.filter(function(v){return v.id===selVendorId})
+    : analyticsMineVendors()
+  var scopedVendorIds = scopedVendors.map(function(v){return v.id})
+  var contracts = selVendorId
+    ? allContracts().filter(function(c){return scopedVendorIds.indexOf(c.vendorId)!==-1})
+    : (_analyticsScope==='mine'
+        ? allContracts().filter(function(c){return scopedVendorIds.indexOf(c.vendorId)!==-1})
+        : allContracts())
   var total     = contracts.length
   var totalVal  = contracts.reduce(function(s,c){return s+c.value},0)
   var activeVal = contracts.filter(function(c){return c.status==='active'||c.status==='renewal'}).reduce(function(s,c){return s+c.value},0)
@@ -6840,7 +6935,9 @@ function renderPortfolioAnalytics(){
 
 /* ══ VENDOR DASHBOARD ═══════════════════════════════════════════ */
 function renderVendorAnalytics(selVendorId){
-  var vendors = selVendorId ? VENDORS.filter(function(v){return v.id===selVendorId}) : VENDORS
+  var vendors = selVendorId
+    ? VENDORS.filter(function(v){return v.id===selVendorId})
+    : analyticsMineVendors()
   var vf = document.getElementById('analytics-vendor-filter')
   if(vf) vf.style.display = 'block'
 
@@ -6990,6 +7087,187 @@ function renderVendorAnalytics(selVendorId){
   document.getElementById('analytics-grid').innerHTML = row1 + row2v + row3v
 }
 
+/* ══ CONTRACT ANALYTICS ════════════════════════════════════════ */
+function analyticsSelectContract(contractId){
+  var cf = document.getElementById('analytics-contract-filter')
+  if(cf){
+    var existing = Array.from(cf.options).find(function(o){return o.value===contractId})
+    if(!existing){ var o=document.createElement('option'); o.value=contractId; cf.appendChild(o) }
+    cf.value = contractId
+  }
+  renderContractAnalytics(contractId)
+}
+
+function renderContractAnalytics(selContractId){
+  var grid = document.getElementById('analytics-grid')
+  if(!grid) return
+
+  var vf = document.getElementById('analytics-vendor-filter')
+  var selVendorId = vf && vf.value !== 'all' ? +vf.value : null
+  var scopedVendors = selVendorId
+    ? VENDORS.filter(function(v){return v.id===selVendorId})
+    : analyticsMineVendors()
+  var allPairs = []
+  scopedVendors.forEach(function(v){ v.contracts.forEach(function(c){ allPairs.push({c:c,v:v}) }) })
+
+  if(!selContractId || !allPairs.length){
+    var pickRows = allPairs.slice(0,50).map(function(item){
+      var c=item.c; var v=item.v
+      var cd=daysLeft(c.end)
+      var st=CT_STATUS[c.status]||{label:c.status,color:'var(--g400)',bg:'var(--g50)'}
+      return '<div onclick="analyticsSelectContract(\'' + c.id + '\')" '
+        +'style="display:grid;grid-template-columns:1fr 100px 80px 100px;gap:8px;align-items:center;padding:9px 10px;border-bottom:1px solid var(--g100);cursor:pointer;font-size:var(--fs-xs);border-radius:var(--r-sm)" '
+        +'onmouseenter="this.style.background=\'var(--g50)\'" onmouseleave="this.style.background=\'\'">'
+        +'<div><div style="font-weight:var(--fw-semi);color:var(--g800)">'+c.name+'</div>'
+        +'<div style="font-size:10px;color:var(--g400)">'+vName(v)+'</div></div>'
+        +'<div style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--gov)">'+fmtEur(c.value)+'</div>'
+        +'<div style="color:'+(cd<=0?'#c0392b':cd<=90?'#c0392b':cd<=180?'#d97706':'var(--g500)')+';font-weight:'+(cd<=180?600:400)+'">'+(cd<=0?'Expired':cd+'d')+'</div>'
+        +'<span style="font-size:11px;padding:2px 7px;border-radius:var(--r-pill);background:'+st.bg+';color:'+st.color+'">'+st.label+'</span>'
+        +'</div>'
+    }).join('')
+    grid.innerHTML = _aCard(
+      'Select a contract ' + (_analyticsScope==='mine' ? '(Mine) ' : '') + '— ' + allPairs.length + ' available',
+      '<div style="display:grid;grid-template-columns:1fr 100px 80px 100px;gap:8px;padding:5px 10px;border-bottom:1px solid var(--g150);margin-bottom:4px">'
+        +'<span style="font-size:10px;font-weight:600;color:var(--g400);text-transform:uppercase">Contract</span>'
+        +'<span style="font-size:10px;font-weight:600;color:var(--g400);text-transform:uppercase">Value</span>'
+        +'<span style="font-size:10px;font-weight:600;color:var(--g400);text-transform:uppercase">Days left</span>'
+        +'<span style="font-size:10px;font-weight:600;color:var(--g400);text-transform:uppercase">Status</span>'
+        +'</div>' + pickRows,
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gov)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+    )
+    return
+  }
+
+  var pair = allPairs.find(function(p){return p.c.id===selContractId})
+  if(!pair){
+    var found = null
+    VENDORS.forEach(function(v){ v.contracts.forEach(function(c){ if(c.id===selContractId) found={c:c,v:v} }) })
+    if(!found){ grid.innerHTML='<div style="padding:40px;text-align:center;color:var(--g400)">Contract not found.</div>'; return }
+    pair = found
+  }
+
+  var c = pair.c; var v = pair.v
+  var cd = daysLeft(c.end)
+  var vScore = calcScore(v.h)
+  var vRag = rag(vScore)
+  var st = CT_STATUS[c.status]||{label:c.status,color:'var(--g400)',bg:'var(--g50)'}
+  var rd = RENEWAL_DATA ? RENEWAL_DATA.find(function(r){return r.contractId===c.id}) : null
+
+  // KPI bar
+  var kpis = '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px">'
+    + _aKpi(fmtEur(c.value),        'Contract value',  'var(--gov)',   '#eef3fa')
+    + _aKpi(cd<=0?'Expired':cd+'d', 'Days remaining',  cd<=90?'#c0392b':cd<=180?'#d97706':'#1a9e5c', cd<=90?'#fdecea':cd<=180?'#fffbea':'#eaf7f1')
+    + _aKpi(st.label,                'Status',          st.color,       st.bg)
+    + _aKpi(vScore,                  'Vendor VHS',      RC[vRag],       RC[vRag]+'18')
+    + _aKpi(c.type||'—',       'Contract type',   'var(--g600)', 'var(--g50)')
+    + '</div>'
+
+  // Compliance
+  var compFields = [
+    {key:'dpia_required',   label:'DPIA required'},
+    {key:'dpia_completed',  label:'DPIA completed'},
+    {key:'data_agreement',  label:'Data agreement (DPA/AVG)'},
+    {key:'security_review', label:'Security review'},
+  ]
+  var compRows = compFields.map(function(f){
+    var val = c[f.key]
+    var ok = val==='Ja'||val===true
+    var na = val==='Nvt'
+    var col = na ? 'var(--g400)' : ok ? '#1a9e5c' : '#c0392b'
+    var icon = na ? '–' : ok ? '✓' : '✗'
+    return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--g100);font-size:var(--fs-xs)">'
+      + '<span style="font-weight:700;color:'+col+';width:14px;text-align:center">'+icon+'</span>'
+      + '<span style="flex:1;color:var(--g700)">'+f.label+'</span>'
+      + '<span style="color:'+col+';font-weight:var(--fw-semi)">'+(val||'—')+'</span>'
+      + '</div>'
+  }).join('')
+  var compCard = _aCard('Compliance', compRows,
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1a9e5c" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>')
+
+  // Key dates
+  var datesHtml = '<div style="display:flex;flex-direction:column;gap:0">'
+  var dates = [
+    {label:'Start date',    val:c.start||'—'},
+    {label:'End date',      val:c.end||'—'},
+    {label:'Notice period', val:(c.notice_period_days ? c.notice_period_days+'d' : '—')},
+    {label:'Auto-renew',    val:(c.auto_renew==='Ja'?'Yes':c.auto_renew==='Nee'?'No':'—')},
+  ]
+  dates.forEach(function(d){
+    datesHtml += '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--g100);font-size:var(--fs-xs)">'
+      + '<span style="color:var(--g500)">'+d.label+'</span>'
+      + '<span style="font-weight:var(--fw-semi);color:var(--g700)">'+d.val+'</span>'
+      + '</div>'
+  })
+  datesHtml += '</div>'
+  var datesCard = _aCard('Key Dates', datesHtml,
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#077a8a" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>')
+
+  // Renewal
+  var renewHtml = ''
+  if(rd){
+    var gs = renewalGateStatus(rd)
+    var stageConf = RENEWAL_GATE_CONFIG[rd.stage]||{}
+    var personas = ['cm','ce','po','mgr']
+    var signsHtml = personas.map(function(p){
+      var signed = rd.signoffs && rd.signoffs[p]
+      return '<div style="display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);padding:5px 0;border-bottom:1px solid var(--g100)">'
+        + '<span style="font-weight:700;color:'+(signed?'#1a9e5c':'var(--g300)')+';">'+(signed?'✓':'○')+'</span>'
+        + '<span style="flex:1;color:var(--g600)">'+PERSONA_DISPLAY[p]+'</span>'
+        + (signed ? '<span style="font-size:10px;color:var(--g400)">'+rd.signoffs[p]+'</span>' : '')
+        + '</div>'
+    }).join('')
+    renewHtml = '<div style="margin-bottom:8px;display:flex;align-items:center;gap:8px">'
+      + '<span style="font-size:12px;font-weight:700;padding:2px 10px;border-radius:var(--r-pill);background:var(--gov)18;color:var(--gov)">'+(stageConf.label||rd.stage)+'</span>'
+      + '<span style="font-size:var(--fs-xs);color:var(--g500)">'+(stageConf.title||'')+'</span>'
+      + '<span style="margin-left:auto;font-size:var(--fs-xs);font-weight:600;color:'+(gs.blocking?'#c0392b':gs.unlocked?'#1a9e5c':'#d97706')+'">'
+        +(gs.blocking?'Blocked':gs.unlocked?'Approved':'Pending '+gs.missing.length+' sign-off(s)')+'</span></div>'
+      + signsHtml
+  } else {
+    renewHtml = '<div style="padding:20px 0;text-align:center;color:var(--g300);font-size:var(--fs-sm)">No renewal record</div>'
+  }
+  var renewCard = _aCard('Renewal Stage', renewHtml,
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>')
+
+  // Vendor health
+  var comps = [{key:'c',label:'Compliance'},{key:'p',label:'Performance'},{key:'a',label:'Adoption'},{key:'s',label:'Sentiment'}]
+  var vhsHtml = comps.map(function(comp){
+    var val = v.h[comp.key]
+    var col = val>=80?'#1a9e5c':val>=60?'#d97706':'#c0392b'
+    return '<div style="display:flex;align-items:center;gap:10px;font-size:var(--fs-xs);padding:4px 0">'
+      + '<div style="width:80px;color:var(--g600)">'+comp.label+'</div>'
+      + '<div style="flex:1;background:var(--g100);border-radius:20px;height:8px;overflow:hidden">'
+      + '<div style="height:100%;width:'+val+'%;background:'+col+';border-radius:20px"></div></div>'
+      + '<div style="width:28px;text-align:right;font-weight:700;color:'+col+'">'+val+'</div>'
+      + '</div>'
+  }).join('')
+  vhsHtml += '<div style="margin-top:10px;padding:8px 10px;border-radius:var(--r-sm);background:var(--g50);font-size:var(--fs-xs);display:flex;justify-content:space-between">'
+    + '<span style="color:var(--g500)">Vendor</span>'
+    + '<span style="font-weight:var(--fw-semi);color:var(--g700);cursor:pointer" onclick="analyticsGoToVendor('+v.id+')">'
+    + vName(v)+' <span style="font-size:10px;color:var(--gov)">↗ View vendor</span></span>'
+    + '</div>'
+  var vhsCard = _aCard('Vendor Health ('+vScore+')', vhsHtml,
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="'+RC[vRag]+'" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>')
+
+  // Notes
+  var notesHtml = c.notes
+    ? '<div style="font-size:var(--fs-xs);color:var(--g700);line-height:1.6;white-space:pre-wrap">'+c.notes+'</div>'
+    : '<div style="padding:16px 0;text-align:center;color:var(--g300);font-size:var(--fs-sm)">No notes</div>'
+  var notesCard = _aCard('Notes', notesHtml,
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--g400)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>')
+
+  var row1 = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">'
+    + compCard + datesCard + renewCard + '</div>'
+  var row2 = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+    + vhsCard + notesCard + '</div>'
+
+  grid.innerHTML = kpis + row1 + row2
+}
+
+function analyticsGoToVendor(vendorId){
+  var vf = document.getElementById('analytics-vendor-filter')
+  if(vf){ vf.value = vendorId }
+  analyticsVendorChanged()
+}
 /* ── Card helpers ───────────────────────────────────────────── */
 function _aCard(title, body, icon){
   return '<div style="background:#fff;border:1px solid var(--g150);border-radius:var(--r-md);padding:16px">'
