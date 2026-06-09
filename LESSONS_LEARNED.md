@@ -1,6 +1,6 @@
 # Lessons Learned — PVSP
 
-> Last updated: 2026-06-07 (backend sprint added)  
+> Last updated: 2026-06-09 (data expansion + compliance + renewal sprint)  
 > These lessons exist because they cost real time to learn. Read them before starting any sprint.
 
 ---
@@ -38,7 +38,7 @@ Also verify `VIEW_TITLES` (~line 1776) includes the key if you want a topbar lab
 ### File size is already over target — don't add bloat
 
 **Category**: architecture  
-**Context**: PVSP is a single HTML file. Current size: **788,893 bytes** (over the 750KB target).  
+**Context**: PVSP is a single HTML file. Current size: **~1005 KB** (well over the original 750KB target).  
 **What went wrong**: Inline SVG assets and large blocks of generated HTML have pushed the file above a comfortable threshold. Load time and edit experience both degrade further as it grows.  
 **Rule**: Never inline SVG assets larger than 2KB. Use CSS-drawn icons or CDN references instead. After every sprint, check: `wc -c index.html`. If over 800KB, identify and trim what grew before merging.
 
@@ -51,9 +51,9 @@ Also verify `VIEW_TITLES` (~line 1776) includes the key if you want a topbar lab
 **Category**: data  
 **Context**: All app state is stored in one localStorage key. The key and version are defined at line 7728:
 ```js
-var STORAGE_KEY = "pvsp_v59_data"
+var STORAGE_KEY = "pvsp_v60_data"
 // version checked in loadFromStorage:
-if(!data || data.version !== "6.0") return false
+if(!data || data.version !== "6.1") return false
 ```
 `saveToStorage()` serialises: `VENDORS`, `TASKS`, `RISKS`, `DOCUMENTS`, `MEETINGS`, `PLAYBOOKS`, `USERS`, `TEAM_ASSIGNMENTS`, `RENEWAL_DATA`, `RBAC_MATRIX`, `ALERT_THRESHOLDS`, `_adminPassword`.
 
@@ -181,10 +181,82 @@ This preserves all characters exactly. Only use nano for small single-line edits
 
 ## Known Fragile Areas
 
-- **Renewal funnel approval gate logic** (`renderRenewal()` ~line 3793, `RENEWAL_DATA` ~line 1573) — the multi-role sign-off at T-6 (CM+MGR required) and T-3 (all four approvers) is complex. The `signoffs`, `vote`, and `contested` fields interact. Any change to the gate logic risks breaking the clear/block behaviour. Test every approval stage after touching this code.
+- **Renewal funnel approval gate logic** — sign-off is only required at T-3 (all four personas: CM, CE, PO, MGR). T-9 and T-6 have `required: []`. `renewalGateStatus(rd)` derives `missing`/`blocking`/`unlocked` from `rd.signoffs`. Test T-3 gate after any change to sign-off logic.
 
-- **`RBAC_MATRIX` / `ADMIN_VIEWS` sync** — these two structures must always be in sync. `RBAC_MATRIX` (~line 6162) controls live access; `ADMIN_VIEWS` (~line 6171) controls what the admin can configure. A view missing from `ADMIN_VIEWS` is invisible in the admin panel; a view missing from `RBAC_MATRIX` gives silent null access.
+- **`RBAC_MATRIX` / `ADMIN_VIEWS` sync** — these two structures must always be in sync. `RBAC_MATRIX` controls live access; `ADMIN_VIEWS` controls what the admin can configure. A view missing from `ADMIN_VIEWS` is invisible in the admin panel; a view missing from `RBAC_MATRIX` gives silent null access.
 
-- **`loadFromStorage()` version check** (~line 7757) — the line `if(!data || data.version !== "6.0") return false` rejects any saved session that doesn't match exactly. Bumping the version number in `saveToStorage` without adding a migration will wipe all user data on next load.
+- **`loadFromStorage()` version check** — the line `if(!data || data.version !== "6.1") return false` rejects any saved session that doesn't match exactly. Bumping the version number in `saveToStorage` without adding a migration will wipe all user data on next load.
 
 - **`renderCurrentView()` switch** (~line 1979) — new views that aren't in this switch render nothing without any error. Easy to forget when adding a view.
+
+---
+
+## Data Expansion Sprint (June 2026)
+
+### Large JS replacements require Python, not the Edit tool
+
+**Category**: workflow  
+**Context**: `index.html` is ~1005 KB. Multi-line JS block replacements via the Edit tool fail on long strings with special characters.  
+**Rule**: Use a Python `str.replace()` script for any replacement longer than ~10 lines. Quick template:
+```python
+with open('index.html', 'r') as f: content = f.read()
+content = content.replace(OLD, NEW)
+with open('index.html', 'w') as f: f.write(content)
+```
+
+---
+
+### seed_cloud.js is in pvsp-backend, not PVSP
+
+**Category**: workflow  
+**Rule**: Always run the seed from the correct directory:
+```bash
+cd ~/Downloads/pvsp-backend && node seed_cloud.js
+```
+The script reads `../PVSP/index.html` relative to its own path. Running it from `~/Downloads/PVSP` gives `MODULE_NOT_FOUND`.
+
+---
+
+### Git push always requires your Terminal — sandbox has no GitHub auth
+
+**Category**: workflow  
+**Rule**: The sandbox can commit but cannot push. After every session:
+```bash
+rm ~/Downloads/PVSP/.git/HEAD.lock ~/Downloads/PVSP/.git/index.lock 2>/dev/null
+cd ~/Downloads/PVSP && git push
+```
+Lock files appear when a previous git operation was interrupted. Always clear them before committing.
+
+---
+
+### Missing globals cause silent runtime failures with real data
+
+**Category**: data  
+**Context**: `RENEWAL_GATE_CONFIG`, `PERSONA_DISPLAY`, and `renewalGateStatus()` were all referenced throughout the renewal UI but never declared. No error occurred while `RENEWAL_DATA` was empty.  
+**Rule**: When adding data-driven features, grep for all references to new globals before assuming they exist. Declare constants and helper functions **before** the data array that uses them.
+
+---
+
+### Compliance alert cap prevents panel flooding
+
+**Category**: ui  
+**Context**: With 144 contracts and 4 compliance fields, uncapped alerts = potentially 576 items in the alert panel.  
+**Rule**: `_renderAlertList()` caps compliance alerts at 20. Only `"Nee"` triggers an alert — `null` and `"Nvt"` do not. Apply the same cap pattern to any alert category that iterates over all contracts.
+
+---
+
+### Never hardcode MTTR/uptime by vendor ID
+
+**Category**: data  
+**Context**: Original SLM dashboard used `v.id === 1 ? "8h" : v.id === 2 ? ...` — broke for all vendors added after the original 6.  
+**Rule**: Derive all display metrics from vendor data fields (`v.h.p`, `v.kraljic_category`, etc.), never from `v.id`. IDs are unstable across data expansions.
+
+---
+
+### Railway backend down = blank app
+
+**Category**: deployment  
+**Symptom**: App shows no vendors or contracts after login, no visible error.  
+**Cause**: `_loadFromCloud()` and `fetchBackendVendors()` both fail silently when Railway is unreachable. If localStorage is also empty (fresh browser), nothing loads.  
+**Check**: `curl https://pvsp-backend-production.up.railway.app/` — timeout = backend down.  
+**Fix**: Restart service in Railway dashboard → re-run `node seed_cloud.js`.
