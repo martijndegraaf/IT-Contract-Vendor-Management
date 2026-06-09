@@ -1805,8 +1805,8 @@ let TASKS = [
 
 // Gate config: which personas must sign at each stage
 const RENEWAL_GATE_CONFIG = {
-  t9:  { label:"T-9",  title:"Needs validation",  required:["po"] },
-  t6:  { label:"T-6",  title:"Make decision",      required:["cm","mgr"] },
+  t9:  { label:"T-9",  title:"Needs validation",  required:[] },
+  t6:  { label:"T-6",  title:"Make decision",      required:[] },
   t3:  { label:"T-3",  title:"Legal deadline",     required:["cm","ce","po","mgr"] },
 }
 
@@ -4365,20 +4365,39 @@ function renderRenewal(){
     return daysLeft(a.endDate)-daysLeft(b.endDate)
   })
 
-  if(!window._renewalSel||!RENEWAL_DATA.some(function(r){return r.vendorId===window._renewalSel}))
-    window._renewalSel = sorted[0]?sorted[0].vendorId:null
-
   var cp = currentPersona
+  if(!window._renewalMine) window._renewalMine = false
+
+  // Mine filter: show only items where current user is vendor's internal_owner or product_owner
+  var currentUser = (SESSION && SESSION.name) ? SESSION.name.toLowerCase() : ""
+  var mineFiltered = window._renewalMine
+    ? sorted.filter(function(rd){
+        var v = VENDORS.find(function(x){return x.id===rd.vendorId})
+        if(!v) return false
+        var io = (v.internal_owner||"").toLowerCase()
+        var po = (v.product_owner||"").toLowerCase()
+        return currentUser && (io.indexOf(currentUser)!==-1 || po.indexOf(currentUser)!==-1)
+      })
+    : sorted
+
+  if(!window._renewalSel||!RENEWAL_DATA.some(function(r){return r.vendorId===window._renewalSel}))
+    window._renewalSel = mineFiltered[0]?mineFiltered[0].vendorId:null
+
+  // Mine toggle button
+  var mineBtn = '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">'
+    +'<button onclick="window._renewalMine=false;renderRenewal()" style="padding:4px 12px;border-radius:var(--r-pill);border:1px solid '+(window._renewalMine?"var(--g200)":"var(--gov)")+';background:'+(window._renewalMine?"#fff":"var(--gov-l)")+';color:'+(window._renewalMine?"var(--g400)":"var(--gov)")+';font-size:11px;font-weight:600;cursor:pointer">All</button>'
+    +'<button onclick="window._renewalMine=true;renderRenewal()" style="padding:4px 12px;border-radius:var(--r-pill);border:1px solid '+(window._renewalMine?"var(--gov)":"var(--g200)")+';background:'+(window._renewalMine?"var(--gov-l)":"#fff")+';color:'+(window._renewalMine?"var(--gov)":"var(--g400)")+';font-size:11px;font-weight:600;cursor:pointer">Mine</button>'
+    +'</div>'
 
   var leftCards = '<div style="display:flex;flex-direction:column;gap:6px">'
-  sorted.forEach(function(rd){
+  mineFiltered.forEach(function(rd){
     var v   = VENDORS.find(function(x){return x.id===rd.vendorId})
     var cd  = daysLeft(rd.endDate)
     var sc  = stageConf[rd.stage]||stageConf.t12
     var gs  = renewalGateStatus(rd)
     var isSel  = rd.vendorId === window._renewalSel
     var leftBdr= (rd.stage==="t3"&&!rd.decision)?"var(--red)":(rd.stage==="t6"&&!rd.decision)?"var(--amber)":rd.decision?"var(--g200)":"var(--teal)"
-    var myTurn = !isReadOnly()&&gs.missing.indexOf(cp)!==-1
+    var myTurn = rd.stage==="t3"&&!isReadOnly()&&gs.missing.indexOf(cp)!==-1
     leftCards += '<div onclick="selectRenewal('+rd.vendorId+')" style="background:'+(isSel?"var(--gov-l)":"#fff")+';border:1px solid '+(isSel?"var(--gov)":"var(--g150)")+';border-left:3px solid '+leftBdr+';border-radius:var(--r-md);padding:10px 12px;cursor:pointer">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">'
       +'<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:var(--r-pill);background:'+sc.bg+';color:'+sc.color+'">'+sc.label+'</span>'
@@ -4388,8 +4407,8 @@ function renderRenewal(){
       +'</div>'
       +'<div style="font-size:var(--fs-sm);font-weight:var(--fw-semi);color:var(--g800);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+rd.contract+'</div>'
       +'<div style="font-size:var(--fs-xs);color:var(--g500);margin-bottom:7px">'+(v?vName(v):"–")+' · '+(cd<=0?"Expired":cd+"d left")+'</div>'
-      +(function(){
-          var cfg=RENEWAL_GATE_CONFIG[rd.stage]; if(!cfg) return ''
+      +(rd.stage==="t3"?(function(){
+          var cfg=RENEWAL_GATE_CONFIG["t3"]
           var signoffs=rd.signoffs||[]
           return '<div style="display:flex;gap:3px;flex-wrap:wrap">'
             +cfg.required.map(function(p){
@@ -4402,9 +4421,10 @@ function renderRenewal(){
                 return '<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:var(--r-pill);border:1px solid '+bdr+';background:'+bg2+';color:'+txt+'">'+pd2.short+' '+icon+'</span>'
               }).join('')
             +'</div>'
-        })()
+        })():"")
       +'</div>'
   })
+  if(!mineFiltered.length) leftCards += '<div style="padding:24px;text-align:center;color:var(--g400);font-size:var(--fs-sm)">No items match this filter</div>'
   leftCards += '</div>'
 
   var selRd = RENEWAL_DATA.find(function(r){return r.vendorId===window._renewalSel})
@@ -4412,7 +4432,7 @@ function renderRenewal(){
 
   document.getElementById("funnel-grid").innerHTML = kpi
     +'<div style="display:grid;grid-template-columns:260px 1fr;gap:12px;align-items:start">'
-    +'<div>'+leftCards+'</div>'
+    +'<div>'+mineBtn+leftCards+'</div>'
     +'<div id="renewal-detail-col">'+detailHTML+'</div>'
     +'</div>'
 
