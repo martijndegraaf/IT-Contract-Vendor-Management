@@ -11666,7 +11666,7 @@ function openDrawer(vendorId){
       <div class="detail-sec">Contracts (${v.contracts.length})</div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="font-size:10px;color:var(--g400)">All contracts for this vendor</span>
-        <button class="doc-action-btn" onclick="closeDrawer();openContractsForVendor(${v.id})">Contractsregister →</button>
+        <div style="display:flex;gap:6px"><button class="doc-action-btn" onclick="openNewContractForm(${v.id})" style="background:var(--gov);border-color:var(--gov);color:#fff;font-weight:700">+ Add contract</button><button class="doc-action-btn" onclick="closeDrawer();openContractsForVendor(${v.id})">Contractsregister →</button></div>
       </div>
       ${v.contracts.map(ct=>{const cd=daysLeft(ct.end);const ctDocs=DOCUMENTS.filter(d=>d.contractId===ct.id);const st=CT_STATUS[ct.status]||{color:"#5c6575",bg:"#f5f5f5"};return`<div style="background:var(--g50);border-radius:7px;padding:9px 11px;margin-bottom:6px;cursor:pointer;transition:background .12s" onclick="closeDrawer();openCtDetail('${ct.id}')" onmouseenter="this.style.background='var(--gov-l)'" onmouseleave="this.style.background='var(--g50)'"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px"><div style="font-size:11px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ct.name}</div><div style="display:flex;gap:4px;flex-shrink:0"><span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:20px;background:${st.bg};color:${st.color}">${CT_STATUS[ct.status]?.label||ct.status}</span>${ctDocs.length?`<span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:20px;background:#e0f5f7;color:#077a8a">${ctDocs.length} doc</span>`:""}</div></div><div style="font-size:10px;color:var(--g600);display:flex;gap:12px"><span class="mono" style="font-size:11px">${ct.id}</span><span class="mono">${fmtEur(ct.value)}</span><span style="${cd<=90?"color:var(--red);font-weight:700":""}">${ct.end}${cd<=0?" (verlopen)":""}</span></div>${ct.domain||ct.beleidsveld?`<div style="font-size:11px;color:var(--g400);margin-top:3px">${[ct.domain,ct.beleidsveld].filter(Boolean).join(" · ")}</div>`:""}</div>`}).join("")}
     </div>
@@ -17102,7 +17102,13 @@ function vendorFormHTML(v){
   +fld("IBAN","vf-iban","text",v&&v.iban,"e.g. NL55RABO...")
   +'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
   +fld("Account manager","vf-am","text",v&&v.account_manager,"e.g. J. de Vries")
-  +fld("Internal owner","vf-owner","text",v&&v.internal_owner,"e.g. A. Smit (Contract management)")
+  +fld("Internal owner (CM)","vf-owner","text",v&&v.internal_owner,"e.g. A. Smit (Contract management)")
+  +'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+  +fld("Product owner (PO)","vf-po","text",v&&v.product_owner,"e.g. M. Visser")
+  +fld("Contract officer (CE)","vf-ce","text",v&&v.ce_owner,"e.g. B. Hendriks")
+  +'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+  +fld("SLM owner","vf-slm","text",v&&v.slm_owner,"e.g. L. van den Berg")
+  +fld("Manager (MGR)","vf-mgr","text",v&&v.manager,"e.g. S. Kuijpers")
   +'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
   +fld("Domain / client","vf-domain","text",v&&v.domain,"e.g. Tax Authority")
   +fld("Website","vf-website","text",v&&v.website,"https://")
@@ -17551,6 +17557,8 @@ function saveVendorForm(editId){
       v.trade_name=trade; v.legal_name=legal||trade
       v.kvk=gv("vf-kvk"); v.iban=gv("vf-iban")
       v.account_manager=gv("vf-am"); v.internal_owner=gv("vf-owner")
+      v.product_owner=gv("vf-po"); v.ce_owner=gv("vf-ce")
+      v.slm_owner=gv("vf-slm"); v.manager=gv("vf-mgr")
       var kq=document.getElementById("vf-kraljic"); if(kq) v.kraljic=kq.value
       var lc=document.getElementById("vf-lifecycle"); if(lc) v.lifecycle=lc.value
       auditLog("UPDATE","Vendor updated: "+vName(v), v.id)
@@ -17559,6 +17567,7 @@ function saveVendorForm(editId){
   } else {
     var newV={id:Date.now(),trade_name:trade,legal_name:legal||trade,
       kvk:gv("vf-kvk"),iban:gv("vf-iban"),account_manager:gv("vf-am"),internal_owner:gv("vf-owner"),
+      product_owner:gv("vf-po"),ce_owner:gv("vf-ce"),slm_owner:gv("vf-slm"),manager:gv("vf-mgr"),
       contracts:[],h:{c:70,q:70,f:70,d:70,p:70,r:70}}
     var kq2=document.getElementById("vf-kraljic"); if(kq2) newV.kraljic=kq2.value
     var lc2=document.getElementById("vf-lifecycle"); if(lc2) newV.lifecycle=lc2.value
