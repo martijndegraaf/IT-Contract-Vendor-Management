@@ -12083,7 +12083,7 @@ function renderRenewal(){
   if(!window._renewalMine) window._renewalMine = false
 
   // Mine filter: show only items where current user is vendor's internal_owner or product_owner
-  var currentUser = (SESSION && SESSION.name) ? SESSION.name.toLowerCase() : ""
+  var currentUser = (_session && _session.user) ? _session.user.name.toLowerCase() : ""
   var mineFiltered = window._renewalMine
     ? sorted.filter(function(rd){
         var v = VENDORS.find(function(x){return x.id===rd.vendorId})
@@ -14300,7 +14300,7 @@ function analyticsSetScope(scope){
 
 function analyticsMineVendors(){
   if(_analyticsScope !== 'mine') return VENDORS
-  var currentUser = (SESSION && SESSION.name) ? SESSION.name.toLowerCase() : ''
+  var currentUser = (_session && _session.user) ? _session.user.name.toLowerCase() : ''
   if(!currentUser) return VENDORS
   return VENDORS.filter(function(v){
     var io  = (v.internal_owner||'').toLowerCase()
